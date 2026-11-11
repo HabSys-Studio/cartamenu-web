@@ -1,21 +1,22 @@
-import { auth } from '@/auth'
 import { NextResponse } from 'next/server'
 
-export async function middleware(request) {
-  const session = await auth()
+const ADMIN_PATHS = ['/admin', '/admin/login']
+const PUBLIC_PATHS = ['/api/auth', '/admin/login']
+
+export function middleware(request) {
   const { pathname } = request.nextUrl
 
-  // Permitir acceso a la página de login
-  if (pathname === '/admin/login') {
-    if (session?.user) {
-      return NextResponse.redirect(new URL('/admin', request.url))
-    }
+  // Permitir acceso a rutas de auth y login
+  if (PUBLIC_PATHS.some((p) => pathname.startsWith(p))) {
     return NextResponse.next()
   }
 
-  // Proteger todas las subrutas de /admin
+  // Proteger rutas de /admin
   if (pathname.startsWith('/admin')) {
-    if (!session?.user) {
+    const sessionCookie = request.cookies.get('__secure-nextauth.session-token')?.value
+      || request.cookies.get('nextauth.session-token')?.value
+
+    if (!sessionCookie) {
       return NextResponse.redirect(new URL('/admin/login', request.url))
     }
   }
