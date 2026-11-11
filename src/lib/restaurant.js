@@ -42,6 +42,23 @@ export async function getCurrentRestaurant() {
   })
 }
 
+export async function getRestaurantBySlug(slug) {
+  return prisma.restaurant.findUnique({
+    where: { slug },
+    include: {
+      categories: {
+        include: {
+          products: {
+            where: { restaurantId: { equals: '' } },
+            orderBy: [{ order: 'asc' }, { createdAt: 'desc' }],
+          },
+        },
+        orderBy: { order: 'asc' },
+      },
+    },
+  })
+}
+
 export async function getOwnedCategory(restaurantId, categoryId) {
   if (!categoryId) return null
 
