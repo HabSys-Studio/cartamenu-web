@@ -7,13 +7,17 @@ import Image from 'next/image';
 // PIN general predeterminado para el personal de salón (6 dígitos)
 const PIN_MOZO = "123456"; 
 
-export default function MenuClient({ platos = [], categorias = [] }) {
+export default function MenuClient({ platos = [], categorias = [], restaurantId = null }) {
   const [categoriaSeleccionada, setCategoriaSeleccionada] = useState('todas');
   const [busqueda, setBusqueda] = useState('');
   const [carrito, setCarrito] = useState([]);
   const [esModoMozo, setEsModoMozo] = useState(false);
   const [numeroMesa, setNumeroMesa] = useState('');
   const [carritoAbierto, setCarritoAbierto] = useState(false);
+  const [checkoutStep, setCheckoutStep] = useState('carrito'); // 'carrito' | 'datos' | 'exito'
+  const [clienteNombre, setClienteNombre] = useState('');
+  const [numeroMesaPedido, setNumeroMesaPedido] = useState('');
+  const [restaurantIdProp, setRestaurantIdProp] = useState<string | null>(null);
 
   // Estados para el Modal de Contraseña
   const [mostrarModalPin, setMostrarModalPin] = useState(false);
@@ -103,6 +107,58 @@ export default function MenuClient({ platos = [], categorias = [] }) {
     setCarrito((prev) =>
       prev.map((item) => (item._id === id ? { ...item, notas } : item))
     );
+  };
+
+  const handleCheckout = async () => {
+    if (!restaurantIdProp && !restaurantId) {
+      alert('Error: no se identificó el restaurante.');
+      return;
+    }
+
+    setCheckoutStep('datos');
+  };
+
+  const confirmarPedido = async () => {
+    if (!clienteNombre.trim()) {
+      alert('Por favor ingresa tu nombre.');
+      return;
+    }
+
+    const payload = {
+      restaurantId: restaurantIdProp || restaurantId,
+      customerName: clienteNombre,
+      customerPhone: numeroMesaPedido || null,
+      customerEmail: null,
+      total: totalPedido,
+      items: carrito.map((item) => ({
+        id: item.id,
+        quantity: item.cantidad,
+        price: item.price,
+        notas: item.notas || '',
+      })),
+    };
+
+    try {
+      const res = await fetch('/api/orders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        setCheckoutStep('exito');
+        // Limpiar carrito via Zustand
+        const { clearCart } = await import('@/store/useCartStore');
+        clearCart();
+      } else {
+        alert(data.error || 'Error al crear el pedido.');
+      }
+    } catch (error) {
+      console.error(error);
+      alert('Error de conexión al crear el pedido.');
+    }
   };
 
   const totalPedido = carrito.reduce(
@@ -406,14 +462,68 @@ export default function MenuClient({ platos = [], categorias = [] }) {
                 </span>
               </div>
 
-              <button
-                onClick={() =>
-                  alert(`Pedido procesado. Total: $${totalPedido}.`)
-                }
-                className="w-full py-3 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-xl transition-colors"
-              >
-                {esModoMozo ? 'Confirmar Comanda' : 'Revisar Resumen'}
-              </button>
+              {checkoutStep === 'carrito' ? (
+                <button
+                  onClick={handleCheckout}
+                  className="w-full py-3 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-xl transition-colors"
+                >
+                  {esModoMozo ? 'Confirmar Comanda' : 'Revisar Resumen'}
+                </button>
+              ) : checkoutStep === 'datos' ? (
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-xs font-bold text-neutral-300 mb-1.5 uppercase tracking-wider">
+                      Tu nombre
+                    </label>
+                    <input
+                      type="text"
+                      value={clienteNombre}
+                      onChange={(e) => setClienteNombre(e.target.value)}
+                      placeholder="Juan Pérez"
+                      className="w-full bg-neutral-950 border border-neutral-800 rounded-xl px-4 py-2 text-sm text-neutral-100 focus:border-amber-500 outline-none transition"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-neutral-300 mb-1.5 uppercase tracking-wider">
+                      Mesa (opcional)
+                    </label>
+                    <input
+                      type="text"
+                      value={numeroMesaPedido}
+                      onChange={(e) => setNumeroMesaPedido(e.target.value)}
+                      placeholder="Mesa 4"
+                      className="w-full bg-neutral-950 border border-neutral-800 rounded-xl px-4 py-2 text-sm text-neutral-100 focus:border-amber-500 outline-none transition"
+                    />
+                  </div>
+                  <button
+                    onClick={confirmarPedido}
+                    className="w-full py-3 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-xl transition-colors"
+                  >
+                    Confirmar Pedido
+                  </button>
+                  <button
+                    onClick={() => setCheckoutStep('carrito')}
+                    className="w-full py-2 bg-neutral-800 hover:bg-neutral-700 text-neutral-300 text-sm rounded-xl transition-colors"
+                  >
+                    Volver al carrito
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <div className="bg-green-950/20 border border-green-800/50 rounded-xl p-4 text-center">
+                    <h3 className="text-green-400 font-bold text-sm">¡Pedido confirmado!</h3>
+                    <p className="text-neutral-400 text-xs mt-1">
+                      Tu pedido se ha enviado. Total: ${totalPedido.toLocaleString('es-AR', { minimumFractionDigits: 2 })}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => setCheckoutStep('carrito')}
+                    className="w-full py-3 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-xl transition-colors"
+                  >
+                    Nuevo pedido
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>

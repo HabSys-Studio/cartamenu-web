@@ -4,8 +4,8 @@ import { prisma } from '@/lib/prisma'
 import { sendPasswordResetEmail } from '@/lib/email'
 import crypto from 'crypto'
 
-export async function requestPasswordReset(formData: FormData) {
-  const email = formData.get('email') as string
+export async function requestPasswordReset(formData) {
+  const email = String(formData.get('email'))
 
   if (!email) {
     return { success: false, error: 'El correo es requerido.' }
