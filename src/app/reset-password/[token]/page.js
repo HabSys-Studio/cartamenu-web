@@ -1,7 +1,58 @@
+'use client'
+
+import { useState } from 'react'
 import Link from 'next/link'
 
 export default function ResetPasswordPage({ params }) {
   const { token } = params
+  const [password, setPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [message, setMessage] = useState('')
+  const [messageType, setMessageType] = useState('')
+
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    setMessage('')
+    
+    if (password !== confirmPassword) {
+      setMessage('Las contraseñas no coinciden.')
+      setMessageType('error')
+      return
+    }
+
+    if (password.length < 6) {
+      setMessage('La contraseña debe tener al menos 6 caracteres.')
+      setMessageType('error')
+      return
+    }
+
+    setLoading(true)
+    try {
+      const res = await fetch('/api/auth/reset-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token, password }),
+      })
+
+      const data = await res.json()
+
+      if (res.ok) {
+        setMessageType('success')
+        setMessage(data.message || 'Contraseña restablecida correctamente.')
+        setPassword('')
+        setConfirmPassword('')
+      } else {
+        setMessageType('error')
+        setMessage(data.error || 'Error al restablecer la contraseña.')
+      }
+    } catch (error) {
+      setMessageType('error')
+      setMessage('Error de conexión. Intenta de nuevo.')
+    } finally {
+      setLoading(false)
+    }
+  }
 
   return (
     <div className="min-h-screen bg-neutral-950 flex items-center justify-center p-4">
@@ -18,17 +69,55 @@ export default function ResetPasswordPage({ params }) {
           </p>
         </div>
 
-        <div className="bg-neutral-950 p-6 rounded-xl border border-neutral-800 mb-8">
-          <p className="text-xs text-neutral-500 mb-4">
-            🔑 <strong>Token:</strong> {token}
-          </p>
-          <p className="text-sm text-neutral-400 mb-2">
-            Esta función requiere configuración de correo para validar el token.
-          </p>
-          <p className="text-sm text-neutral-400">
-            Próximamente: podrás restablecer tu contraseña de forma segura por email.
-          </p>
-        </div>
+        {message && (
+          <div className={`mb-4 p-3 rounded-xl text-xs font-medium ${
+            messageType === 'success'
+              ? 'bg-green-950/50 border border-green-800/80 text-green-300'
+              : 'bg-rose-950/50 border border-rose-800/80 text-rose-300'
+          }`}>
+            {message}
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-xs font-bold text-neutral-300 mb-1.5 uppercase tracking-wider">
+              Nueva contraseña
+            </label>
+            <input
+              type="password"
+              required
+              minLength={6}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="••••••••"
+              className="w-full bg-neutral-950 border border-neutral-800 focus:border-amber-500 text-neutral-100 rounded-xl p-3 text-sm outline-none transition"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-neutral-300 mb-1.5 uppercase tracking-wider">
+              Confirmar contraseña
+            </label>
+            <input
+              type="password"
+              required
+              minLength={6}
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              placeholder="••••••••"
+              className="w-full bg-neutral-950 border border-neutral-800 focus:border-amber-500 text-neutral-100 rounded-xl p-3 text-sm outline-none transition"
+            />
+          </div>
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full bg-amber-500 hover:bg-amber-400 text-neutral-950 font-extrabold py-3.5 rounded-xl text-sm transition disabled:opacity-50"
+          >
+            {loading ? 'Restableciendo...' : 'Restablecer contraseña'}
+          </button>
+        </form>
 
         <div className="mt-6 text-center">
           <Link

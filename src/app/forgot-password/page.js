@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { requestPasswordReset } from './actions'
 
 export default function ForgotPasswordPage() {
   return (
@@ -16,17 +17,27 @@ export default function ForgotPasswordPage() {
           </p>
         </div>
 
-        <div className="bg-neutral-950 p-6 rounded-xl border border-neutral-800 mb-8">
-          <p className="text-xs text-neutral-500 mb-4">
-            📧 <strong>Estado:</strong> Configuración de correo pendiente
-          </p>
-          <p className="text-sm text-neutral-400 mb-2">
-            Esta función requiere un proveedor de email (Resend, SendGrid, etc.).
-          </p>
-          <p className="text-sm text-neutral-400">
-            Mientras tanto, puedes contactar al administrador del sistema para restablecer tu acceso.
-          </p>
-        </div>
+        <form action={requestPasswordReset} className="space-y-4">
+          <div>
+            <label className="block text-xs font-bold text-neutral-300 mb-1.5 uppercase tracking-wider">
+              Correo Electrónico
+            </label>
+            <input
+              name="email"
+              type="email"
+              required
+              placeholder="admin@tu-restaurante.com"
+              className="w-full bg-neutral-950 border border-neutral-800 focus:border-amber-500 text-neutral-100 rounded-xl p-3 text-sm outline-none transition"
+            />
+          </div>
+
+          <button
+            type="submit"
+            className="w-full bg-amber-500 hover:bg-amber-400 text-neutral-950 font-extrabold py-3.5 rounded-xl text-sm transition"
+          >
+            Enviar enlace de recuperación
+          </button>
+        </form>
 
         <div className="mt-6 text-center">
           <Link
