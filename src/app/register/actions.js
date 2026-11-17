@@ -4,6 +4,8 @@ import { prisma } from '@/lib/prisma'
 import bcrypt from 'bcryptjs'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
+import crypto from 'crypto'
+import { sendWelcomeEmail, sendEmailVerificationEmail } from '@/lib/email'
 
 const defaultTheme = {
   bgColor: '#0a0a0a',
@@ -19,14 +21,26 @@ const defaultTheme = {
   cardBtnTextColor: '#0a0a0a',
 }
 
-export async function registerRestaurant(formData) {
+export async function registerRestaurant(prevState, formData) {
   const name = formData.get('name')
   const slug = formData.get('slug')
   const email = formData.get('email')
+  const confirmEmail = formData.get('confirmEmail')
   const password = formData.get('password')
+  const confirmPassword = formData.get('confirmPassword')
 
-  if (!name || !slug || !email || !password) {
+  if (!name || !slug || !email || !confirmEmail || !password || !confirmPassword) {
     return { success: false, error: 'Todos los campos son requeridos.' }
+  }
+
+  // Validar que los emails coincidan
+  if (email !== confirmEmail) {
+    return { success: false, error: 'Los correos electrónicos no coinciden. Verificá ambos campos.' }
+  }
+
+  // Validar que las contraseñas coincidan
+  if (password !== confirmPassword) {
+    return { success: false, error: 'Las contraseñas no coinciden. Verificá ambos campos.' }
   }
 
   // Validar formato del slug (solo letras, números y guiones)
@@ -74,8 +88,26 @@ export async function registerRestaurant(formData) {
       },
     })
 
+    // Generar token de verificación de email (válido 24 horas)
+    const verificationToken = crypto.randomBytes(32).toString('hex')
+    const expires = new Date(Date.now() + 24 * 60 * 60 * 1000)
+
+    await prisma.verificationToken.create({
+      data: {
+        email,
+        token: verificationToken,
+        expires,
+      },
+    })
+
+    // Enviar email de bienvenida (no bloquea el registro si falla)
+    await sendWelcomeEmail(email, name)
+
+    // Enviar email de verificación de cuenta
+    await sendEmailVerificationEmail(email, verificationToken)
+
     revalidatePath('/')
-    redirect('/admin/login?registered=1')
+    redirect('/verify-email/sent')
   } catch (error) {
     console.error('Error registering restaurant:', error)
     return { success: false, error: 'No se pudo registrar el restaurante. Intenta de nuevo.' }

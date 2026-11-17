@@ -43,20 +43,29 @@ export async function getCurrentRestaurant() {
 }
 
 export async function getRestaurantBySlug(slug) {
-  return prisma.restaurant.findUnique({
+  const restaurant = await prisma.restaurant.findUnique({
     where: { slug },
+  })
+
+  if (!restaurant) {
+    return null
+  }
+
+  const categories = await prisma.category.findMany({
+    where: { restaurantId: restaurant.id },
     include: {
-      categories: {
-        include: {
-          products: {
-            where: { restaurantId: { equals: '' } },
-            orderBy: [{ order: 'asc' }, { createdAt: 'desc' }],
-          },
-        },
-        orderBy: { order: 'asc' },
+      products: {
+        where: { restaurantId: restaurant.id },
+        orderBy: [{ order: 'asc' }, { createdAt: 'desc' }],
       },
     },
+    orderBy: { order: 'asc' },
   })
+
+  return {
+    ...restaurant,
+    categories,
+  }
 }
 
 export async function getOwnedCategory(restaurantId, categoryId) {

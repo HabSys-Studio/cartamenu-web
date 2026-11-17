@@ -1,7 +1,44 @@
+'use client'
+
+import { useActionState, useState } from 'react'
 import Link from 'next/link'
 import { registerRestaurant } from './actions'
 
+function PasswordInput({ name, label, placeholder }) {
+  const [show, setShow] = useState(false)
+
+  return (
+    <div>
+      <label className="block text-xs font-bold text-neutral-300 mb-1.5 uppercase tracking-wider">
+        {label}
+      </label>
+      <div className="relative">
+        <input
+          name={name}
+          type={show ? 'text' : 'password'}
+          required
+          placeholder={placeholder}
+          className="w-full pr-10 bg-neutral-950 border border-neutral-800 rounded-xl px-4 py-3 text-sm text-neutral-100 focus:border-amber-500 outline-none transition"
+        />
+        <button
+          type="button"
+          onClick={() => setShow((prev) => !prev)}
+          className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-200 focus:outline-none"
+          aria-label={show ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+        >
+          {show ? '🙈' : '👁️'}
+        </button>
+      </div>
+    </div>
+  )
+}
+
 export default function RegisterPage() {
+  const [state, formAction, isPending] = useActionState(registerRestaurant, {
+    error: null,
+    success: false,
+  })
+
   return (
     <div className="min-h-screen bg-neutral-950 flex items-center justify-center p-4">
       <div className="w-full max-w-md bg-neutral-900 border border-neutral-800 rounded-2xl p-8 shadow-2xl">
@@ -14,7 +51,13 @@ export default function RegisterPage() {
           </p>
         </div>
 
-        <form action={registerRestaurant} className="space-y-4">
+        {state?.error && (
+          <div className="mb-4 p-3 bg-rose-950/50 border border-rose-800/80 rounded-xl text-rose-300 text-sm font-medium text-center">
+            {state.error}
+          </div>
+        )}
+
+        <form action={formAction} className="space-y-4">
           <div>
             <label className="block text-xs font-bold text-neutral-300 mb-1.5 uppercase tracking-wider">
               Nombre del Restaurante
@@ -59,24 +102,47 @@ export default function RegisterPage() {
 
           <div>
             <label className="block text-xs font-bold text-neutral-300 mb-1.5 uppercase tracking-wider">
-              Contraseña
+              Confirmar Correo
             </label>
             <input
-              name="password"
-              type="password"
+              name="confirmEmail"
+              type="email"
               required
-              placeholder="••••••••"
+              placeholder="admin@tu-restaurante.com"
               className="w-full bg-neutral-950 border border-neutral-800 rounded-xl px-4 py-3 text-sm text-neutral-100 focus:border-amber-500 outline-none transition"
             />
           </div>
 
+          <PasswordInput
+            name="password"
+            label="Contraseña"
+            placeholder="••••••••"
+          />
+
+          <PasswordInput
+            name="confirmPassword"
+            label="Confirmar Contraseña"
+            placeholder="••••••••"
+          />
+
           <button
             type="submit"
-            className="w-full bg-amber-500 hover:bg-amber-400 text-neutral-950 font-extrabold py-3.5 rounded-xl text-sm transition mt-2"
+            disabled={isPending}
+            className={`w-full py-3.5 rounded-xl text-sm font-extrabold transition mt-2 disabled:opacity-50 disabled:cursor-not-allowed ${
+              isPending
+                ? 'bg-neutral-600 text-neutral-400'
+                : 'bg-amber-500 hover:bg-amber-400 text-neutral-950'
+            }`}
           >
-            Crear Restaurante y Cuenta
+            {isPending ? 'Creando cuenta...' : 'Crear Restaurante y Cuenta'}
           </button>
         </form>
+
+        {state?.success && (
+          <div className="mt-4 p-3 bg-emerald-950/50 border border-emerald-800/80 rounded-xl text-emerald-300 text-sm font-medium text-center">
+            ¡Cuenta creada con éxito! Revisá tu correo para verificarla.
+          </div>
+        )}
 
         <div className="mt-6 text-center">
           <p className="text-xs text-neutral-500">
@@ -88,6 +154,15 @@ export default function RegisterPage() {
               Iniciar sesión
             </Link>
           </p>
+        </div>
+
+        <div className="mt-4 text-center">
+          <Link
+            href="/"
+            className="text-xs text-neutral-400 hover:text-neutral-200 transition underline"
+          >
+            ← Volver al menú principal
+          </Link>
         </div>
       </div>
     </div>

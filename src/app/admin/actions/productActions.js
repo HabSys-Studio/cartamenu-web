@@ -3,6 +3,7 @@
 import { v2 as cloudinary } from 'cloudinary'
 import { prisma } from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
+import { getCurrentRestaurant, getOwnedCategory, getOwnedProduct } from '@/lib/restaurant'
 
 // Configurar Cloudinary con las variables de entorno
 cloudinary.config({
@@ -43,6 +44,14 @@ export async function createProductAction(formData) {
       return { success: false, error: 'Los campos Nombre, Precio y Categoría son obligatorios y válidos.' }
     }
 
+    // Validar que la categoría pertenezca al restaurante del usuario autenticado
+    const restaurant = await getCurrentRestaurant()
+    const category = await getOwnedCategory(restaurant.id, categoryId)
+
+    if (!category) {
+      return { success: false, error: 'La categoría no pertenece a este restaurante.' }
+    }
+
     let imageUrl = null
 
     // Procesar subida de imagen a Cloudinary si existe un archivo válido
@@ -66,7 +75,7 @@ export async function createProductAction(formData) {
       imageUrl = uploadResult.secure_url
     }
 
-    // Guardar en SQLite vía Prisma
+    // Guardar en la base de datos asociado al restaurante
     await prisma.product.create({
       data: {
         name,
@@ -74,6 +83,7 @@ export async function createProductAction(formData) {
         price,
         imageUrl,
         categoryId,
+        restaurantId: restaurant.id,
         available: true,
       },
     })
@@ -98,12 +108,12 @@ export async function deleteProductAction(productId) {
       return { success: false, error: 'Identificador de producto no provisto.' }
     }
 
-    const product = await prisma.product.findUnique({
-      where: { id: productId },
-    })
+    // Validar que el producto pertenezca al restaurante del usuario autenticado
+    const restaurant = await getCurrentRestaurant()
+    const product = await getOwnedProduct(restaurant.id, productId)
 
     if (!product) {
-      return { success: false, error: 'El producto a eliminar no existe.' }
+      return { success: false, error: 'El producto no pertenece a este restaurante.' }
     }
 
     // Borrado físico del recurso en Cloudinary si proviene de dicho proveedor
@@ -136,6 +146,14 @@ export async function toggleProductAvailabilityAction(productId, currentStatus) 
   try {
     if (!productId) {
       return { success: false, error: 'Identificador de producto no provisto.' }
+    }
+
+    // Validar que el producto pertenezca al restaurante del usuario autenticado
+    const restaurant = await getCurrentRestaurant()
+    const product = await getOwnedProduct(restaurant.id, productId)
+
+    if (!product) {
+      return { success: false, error: 'El producto no pertenece a este restaurante.' }
     }
 
     await prisma.product.update({

@@ -13,23 +13,11 @@ async function main() {
     },
   })
 
-  const hashedPassword = await bcrypt.hash('admin123', 10)
-
-  const user = await prisma.adminUser.upsert({
-    where: { email: 'admin@habsys.com' },
-    update: {
-      password: hashedPassword,
-      restaurantId: restaurant.id,
-    },
-    create: {
-      email: 'admin@habsys.com',
-      password: hashedPassword,
-      restaurantId: restaurant.id,
-    },
-  })
+  // Usuario de prueba deshabilitado para evitar credenciales predeterminadas en el sistema.
+  // Si necesitas un administrador, créalo desde el registro de la app o inserta manualmente en la DB.
 
   console.log('Local listo:', restaurant.slug)
-  console.log('Usuario admin listo:', user.email)
+  console.log('Seed completado sin usuario admin predeterminado.')
 }
 
 main()
