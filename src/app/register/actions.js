@@ -79,6 +79,7 @@ export async function registerRestaurant(prevState, formData) {
         email,
         password: hashedPassword,
         restaurantId: restaurant.id,
+        emailVerified: true,
       },
     })
 
@@ -94,11 +95,18 @@ export async function registerRestaurant(prevState, formData) {
       },
     })
 
-    // Enviar email de bienvenida (no bloquea el registro si falla)
-    await sendWelcomeEmail(email, name)
+    // Enviar emails (no bloquean el registro si fallan)
+    try {
+      await sendWelcomeEmail(email, name)
+    } catch (e) {
+      console.error('Welcome email error:', e)
+    }
 
-    // Enviar email de verificación de cuenta
-    await sendEmailVerificationEmail(email, verificationToken)
+    try {
+      await sendEmailVerificationEmail(email, verificationToken)
+    } catch (e) {
+      console.error('Verification email error:', e)
+    }
 
     revalidatePath('/')
     return { success: true, formValues: null }
