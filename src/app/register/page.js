@@ -4,7 +4,7 @@ import { useActionState, useState } from 'react'
 import Link from 'next/link'
 import { registerRestaurant } from './actions'
 
-function PasswordInput({ name, label, placeholder }) {
+function PasswordInput({ name, label, placeholder, defaultValue }) {
   const [show, setShow] = useState(false)
 
   return (
@@ -17,6 +17,7 @@ function PasswordInput({ name, label, placeholder }) {
           name={name}
           type={show ? 'text' : 'password'}
           required
+          defaultValue={defaultValue ?? ''}
           placeholder={placeholder}
           className="w-full pr-10 bg-neutral-950 border border-neutral-800 rounded-xl px-4 py-3 text-sm text-neutral-100 focus:border-amber-500 outline-none transition"
         />
@@ -66,6 +67,7 @@ export default function RegisterPage() {
               name="name"
               type="text"
               required
+              defaultValue={state?.formValues?.name ?? ''}
               placeholder="Ej: Mi Pizzería"
               className="w-full bg-neutral-950 border border-neutral-800 rounded-xl px-4 py-3 text-sm text-neutral-100 focus:border-amber-500 outline-none transition"
             />
@@ -79,6 +81,7 @@ export default function RegisterPage() {
               name="slug"
               type="text"
               required
+              defaultValue={state?.formValues?.slug ?? ''}
               placeholder="Ej: mi-pizzeria"
               className="w-full bg-neutral-950 border border-neutral-800 rounded-xl px-4 py-3 text-sm text-neutral-100 focus:border-amber-500 outline-none transition"
             />
@@ -95,6 +98,7 @@ export default function RegisterPage() {
               name="email"
               type="email"
               required
+              defaultValue={state?.formValues?.email ?? ''}
               placeholder="admin@tu-restaurante.com"
               className="w-full bg-neutral-950 border border-neutral-800 rounded-xl px-4 py-3 text-sm text-neutral-100 focus:border-amber-500 outline-none transition"
             />
@@ -108,6 +112,7 @@ export default function RegisterPage() {
               name="confirmEmail"
               type="email"
               required
+              defaultValue={state?.formValues?.confirmEmail ?? ''}
               placeholder="admin@tu-restaurante.com"
               className="w-full bg-neutral-950 border border-neutral-800 rounded-xl px-4 py-3 text-sm text-neutral-100 focus:border-amber-500 outline-none transition"
             />
@@ -117,12 +122,14 @@ export default function RegisterPage() {
             name="password"
             label="Contraseña"
             placeholder="••••••••"
+            defaultValue={state?.formValues?.password ?? ''}
           />
 
           <PasswordInput
             name="confirmPassword"
             label="Confirmar Contraseña"
             placeholder="••••••••"
+            defaultValue={state?.formValues?.confirmPassword ?? ''}
           />
 
           <button
@@ -139,8 +146,18 @@ export default function RegisterPage() {
         </form>
 
         {state?.success && (
-          <div className="mt-4 p-3 bg-emerald-950/50 border border-emerald-800/80 rounded-xl text-emerald-300 text-sm font-medium text-center">
-            ¡Cuenta creada con éxito! Revisá tu correo para verificarla.
+          <div className="mt-4 p-4 bg-emerald-950/50 border border-emerald-800/80 rounded-xl text-center">
+            <div className="text-emerald-400 text-2xl mb-2">✅</div>
+            <h3 className="text-emerald-300 font-bold mb-2">¡Cuenta creada con éxito!</h3>
+            <p className="text-emerald-200 text-sm mb-3">
+              Te enviamos un correo de verificación a tu bandeja de entrada. Revisá también la carpeta de spam.
+            </p>
+            <Link
+              href="/admin/login"
+              className="w-full bg-emerald-500 hover:bg-emerald-400 text-neutral-950 font-bold py-2.5 rounded-lg transition block"
+            >
+              Ir a Iniciar Sesión
+            </Link>
           </div>
         )}
 

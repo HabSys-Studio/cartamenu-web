@@ -3,6 +3,7 @@
 import { useState, useTransition } from 'react'
 import { signIn } from 'next-auth/react'
 import { redirect } from 'next/navigation'
+import Link from 'next/link'
 
 export default function AdminLoginPage() {
   const [error, setError] = useState('')
@@ -79,6 +80,24 @@ export default function AdminLoginPage() {
             {isPending ? 'Validando...' : 'Ingresar al Panel'}
           </button>
         </form>
+
+        <div className="mt-6 text-center space-y-3">
+          <p className="text-xs text-neutral-500">
+            ¿No tienes cuenta?{' '}
+            <Link
+              href="/register"
+              className="text-amber-400 hover:text-amber-300 font-semibold"
+            >
+              Crear una nueva
+            </Link>
+          </p>
+          <Link
+            href="/"
+            className="w-full bg-neutral-800 hover:bg-neutral-700 text-neutral-300 font-bold py-2.5 rounded-xl transition border border-neutral-700 block"
+          >
+            ← Volver al menú principal
+          </Link>
+        </div>
       </div>
     </div>
   )

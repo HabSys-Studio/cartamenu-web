@@ -29,18 +29,21 @@ export async function registerRestaurant(prevState, formData) {
   const password = formData.get('password')
   const confirmPassword = formData.get('confirmPassword')
 
+  // Guardar los valores para rellenar el formulario si hay error
+  const formValues = { name, slug, email, confirmEmail, password, confirmPassword }
+
   if (!name || !slug || !email || !confirmEmail || !password || !confirmPassword) {
-    return { success: false, error: 'Todos los campos son requeridos.' }
+    return { success: false, error: 'Todos los campos son requeridos.', formValues }
   }
 
   // Validar que los emails coincidan
   if (email !== confirmEmail) {
-    return { success: false, error: 'Los correos electrónicos no coinciden. Verificá ambos campos.' }
+    return { success: false, error: 'Los correos electrónicos no coinciden. Verificá ambos campos.', formValues }
   }
 
   // Validar que las contraseñas coincidan
   if (password !== confirmPassword) {
-    return { success: false, error: 'Las contraseñas no coinciden. Verificá ambos campos.' }
+    return { success: false, error: 'Las contraseñas no coinciden. Verificá ambos campos.', formValues }
   }
 
   // Validar formato del slug (solo letras, números y guiones)
@@ -107,7 +110,7 @@ export async function registerRestaurant(prevState, formData) {
     await sendEmailVerificationEmail(email, verificationToken)
 
     revalidatePath('/')
-    redirect('/verify-email/sent')
+    return { success: true, formValues: null }
   } catch (error) {
     console.error('Error registering restaurant:', error)
     return { success: false, error: 'No se pudo registrar el restaurante. Intenta de nuevo.' }
