@@ -153,7 +153,7 @@ export default function RegisterPage() {
               Te enviamos un correo de verificación a tu bandeja de entrada. Revisá también la carpeta de spam.
             </p>
             <Link
-              href="/admin/login"
+              href="/login"
               className="w-full bg-emerald-500 hover:bg-emerald-400 text-neutral-950 font-bold py-2.5 rounded-lg transition block"
             >
               Ir a Iniciar Sesión
@@ -165,7 +165,7 @@ export default function RegisterPage() {
           <p className="text-xs text-neutral-500">
             ¿Ya tienes cuenta?{' '}
             <Link
-              href="/admin/login"
+              href="/login"
               className="text-amber-400 hover:text-amber-300 font-semibold"
             >
               Iniciar sesión

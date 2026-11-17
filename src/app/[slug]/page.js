@@ -57,7 +57,7 @@ export default async function RestaurantMenuPage({ params }) {
           </div>
 
           <Link
-            href="/admin/login"
+            href="/login"
             className="text-xs font-semibold px-3 py-1.5 rounded-lg transition border"
             style={{
               color: restaurant.searchBtnTextColor || '#ededed',

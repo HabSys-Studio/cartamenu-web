@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 
-const ADMIN_PATHS = ['/admin', '/admin/login']
-const PUBLIC_PATHS = ['/api/auth', '/admin/login']
+const ADMIN_PATHS = ['/admin', '/login']
+const PUBLIC_PATHS = ['/api/auth', '/login']
 
 export function middleware(request) {
   const { pathname } = request.nextUrl
@@ -17,7 +17,7 @@ export function middleware(request) {
       || request.cookies.get('nextauth.session-token')?.value
 
     if (!sessionCookie) {
-      return NextResponse.redirect(new URL('/admin/login', request.url))
+      return NextResponse.redirect(new URL('/login', request.url))
     }
   }
 

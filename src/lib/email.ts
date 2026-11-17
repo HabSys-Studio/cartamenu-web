@@ -102,7 +102,7 @@ export async function sendWelcomeEmail(email: string, restaurantName: string) {
               <table role="presentation" width="100%" style="border-collapse: collapse;">
                 <tr>
                   <td align="center">
-                    <a href="${APP_URL}/admin/login" style="display: inline-block; background-color: #f59e0b; color: #0a0a0a; text-decoration: none; font-weight: 700; padding: 14px 28px; border-radius: 8px; font-size: 14px;">
+                    <a href="${APP_URL}/login" style="display: inline-block; background-color: #f59e0b; color: #0a0a0a; text-decoration: none; font-weight: 700; padding: 14px 28px; border-radius: 8px; font-size: 14px;">
                       Ir al panel de administración
                     </a>
                   </td>

@@ -9,7 +9,7 @@ export default function NotFound() {
         La sección o recurso al que intentas acceder no existe o se ha movido.
       </p>
       <Link 
-        href="/admin/login" 
+        href="/login" 
         className="bg-amber-500 hover:bg-amber-400 text-neutral-950 font-bold px-6 py-2.5 rounded-xl text-sm transition"
       >
         Ir al Login de Administración
