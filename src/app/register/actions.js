@@ -61,15 +61,6 @@ export async function registerRestaurant(prevState, formData) {
     return { success: false, error: 'Este slug ya está en uso. Elige otro.' }
   }
 
-  // Verificar que el email no exista
-  const existingUser = await prisma.adminUser.findUnique({
-    where: { email },
-  })
-
-  if (existingUser) {
-    return { success: false, error: 'Ya existe un usuario con este email.' }
-  }
-
   // Hashear contraseña
   const hashedPassword = await bcrypt.hash(String(password), 12)
 

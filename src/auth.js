@@ -8,19 +8,29 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     Credentials({
       name: 'Credentials',
       credentials: {
+        restaurantName: { label: 'Restaurant Name', type: 'text' },
         email: { label: 'Email', type: 'email' },
         password: { label: 'Password', type: 'password' },
       },
       async authorize(credentials) {
+        const restaurantName = credentials?.restaurantName
         const email = credentials?.email
         const password = credentials?.password
 
-        if (!email || !password) {
+        if (!restaurantName || !email || !password) {
           return null
         }
 
-        const user = await prisma.adminUser.findUnique({
-          where: { email: String(email) },
+        const user = await prisma.adminUser.findFirst({
+          where: {
+            email: String(email),
+            restaurant: {
+              name: String(restaurantName),
+            },
+          },
+          include: {
+            restaurant: true,
+          },
         })
 
         if (!user) {
@@ -45,6 +55,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           id: user.id,
           email: user.email,
           restaurantId: user.restaurantId,
+          restaurantName: user.restaurant.name,
         }
       },
     }),
