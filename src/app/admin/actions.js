@@ -2,7 +2,21 @@
 
 import { prisma } from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
+import { auth } from '@/auth'
 import { getCurrentRestaurant, getOwnedCategory, getOwnedProduct } from '@/lib/restaurant'
+
+async function getRestaurantFromSession() {
+  const session = await auth()
+  const restaurantId = session?.user?.restaurantId
+  if (!restaurantId) {
+    throw new Error('No hay sesión de administrador activa.')
+  }
+  const restaurant = await getCurrentRestaurant(restaurantId)
+  if (!restaurant) {
+    throw new Error('Restaurante no encontrado.')
+  }
+  return restaurant
+}
 
 // --- GESTIÓN DE PRODUCTOS ---
 
@@ -21,7 +35,7 @@ export async function saveProduct(formData) {
       return { success: false, error: 'Por favor completa los campos obligatorios.' }
     }
 
-    const restaurant = await getCurrentRestaurant()
+    const restaurant = await getRestaurantFromSession()
     const category = await getOwnedCategory(restaurant.id, categoryId)
 
     if (!category) {
@@ -64,7 +78,7 @@ export async function saveProduct(formData) {
 
 export async function toggleProductAvailability(id, currentStatus) {
   try {
-    const restaurant = await getCurrentRestaurant()
+    const restaurant = await getRestaurantFromSession()
     const product = await getOwnedProduct(restaurant.id, id)
 
     if (!product) {
@@ -87,7 +101,7 @@ export async function toggleProductAvailability(id, currentStatus) {
 
 export async function deleteProduct(id) {
   try {
-    const restaurant = await getCurrentRestaurant()
+    const restaurant = await getRestaurantFromSession()
     const product = await getOwnedProduct(restaurant.id, id)
 
     if (!product) {
@@ -119,7 +133,7 @@ export async function createCategory(formData) {
       return { success: false, error: 'El nombre de la categoría es requerido.' }
     }
 
-    const restaurant = await getCurrentRestaurant()
+    const restaurant = await getRestaurantFromSession()
 
     await prisma.category.create({
       data: { name, order, restaurantId: restaurant.id },
@@ -140,7 +154,7 @@ export async function updateCategory(id, name, order) {
       return { success: false, error: 'El nombre no puede estar vacío.' }
     }
 
-    const restaurant = await getCurrentRestaurant()
+    const restaurant = await getRestaurantFromSession()
     const category = await getOwnedCategory(restaurant.id, id)
 
     if (!category) {
@@ -166,7 +180,7 @@ export async function updateCategory(id, name, order) {
 
 export async function deleteCategory(id) {
   try {
-    const restaurant = await getCurrentRestaurant()
+    const restaurant = await getRestaurantFromSession()
     const category = await getOwnedCategory(restaurant.id, id)
 
     if (!category) {

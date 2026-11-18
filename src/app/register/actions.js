@@ -61,55 +61,82 @@ export async function registerRestaurant(prevState, formData) {
     return { success: false, error: 'Este slug ya está en uso. Elige otro.' }
   }
 
+  // Verificar que el email no esté ya registrado en otro restaurante
+  const existingAdmin = await prisma.adminUser.findUnique({
+    where: { email },
+  })
+
+  if (existingAdmin) {
+    return { success: false, error: 'Este correo electrónico ya está registrado para otro restaurante.' }
+  }
+
   // Hashear contraseña
   const hashedPassword = await bcrypt.hash(String(password), 12)
 
-  // Crear restaurante y admin en una transacción
+  // Generar token de verificación de email (válido 24 horas) fuera de la transacción
+  const verificationToken = crypto.randomBytes(32).toString('hex')
+  const expires = new Date(Date.now() + 24 * 60 * 60 * 1000)
+
+  // Crear restaurante y admin en una transacción atómica
+  let welcomeEmailError = null
+  let verificationEmailError = null
+
   try {
-    const restaurant = await prisma.restaurant.create({
-      data: {
-        name,
-        slug,
-        ...defaultTheme,
-      },
+    const restaurant = await prisma.$transaction(async (tx) => {
+      const createdRestaurant = await tx.restaurant.create({
+        data: {
+          name,
+          slug,
+          ...defaultTheme,
+        },
+      })
+
+      await tx.adminUser.create({
+        data: {
+          email,
+          password: hashedPassword,
+          restaurantId: createdRestaurant.id,
+          emailVerified: true,
+        },
+      })
+
+      await tx.verificationToken.create({
+        data: {
+          email,
+          token: verificationToken,
+          expires,
+        },
+      })
+
+      return createdRestaurant
     })
 
-    await prisma.adminUser.create({
-      data: {
-        email,
-        password: hashedPassword,
-        restaurantId: restaurant.id,
-        emailVerified: true,
-      },
-    })
-
-    // Generar token de verificación de email (válido 24 horas)
-    const verificationToken = crypto.randomBytes(32).toString('hex')
-    const expires = new Date(Date.now() + 24 * 60 * 60 * 1000)
-
-    await prisma.verificationToken.create({
-      data: {
-        email,
-        token: verificationToken,
-        expires,
-      },
-    })
-
-    // Enviar emails (no bloquean el registro si fallan)
+    // Enviar emails (registramos el error pero no bloqueamos el registro)
     try {
-      await sendWelcomeEmail(email, name)
+      await sendWelcomeEmail(email, restaurant.name)
     } catch (e) {
+      welcomeEmailError = e instanceof Error ? e.message : 'Error desconocido'
       console.error('Welcome email error:', e)
     }
 
     try {
       await sendEmailVerificationEmail(email, verificationToken)
     } catch (e) {
+      verificationEmailError = e instanceof Error ? e.message : 'Error desconocido'
       console.error('Verification email error:', e)
     }
 
     revalidatePath('/')
-    return { success: true, formValues: null }
+
+    const emailWarnings = []
+    if (welcomeEmailError) emailWarnings.push('No se pudo enviar el correo de bienvenida.')
+    if (verificationEmailError) emailWarnings.push('No se pudo enviar el correo de verificación.')
+
+    return {
+      success: true,
+      formValues: null,
+      emailWarnings: emailWarnings.length > 0 ? emailWarnings : null,
+    }
   } catch (error) {
     console.error('Error registering restaurant:', error)
     return { success: false, error: 'No se pudo registrar el restaurante. Intenta de nuevo.' }

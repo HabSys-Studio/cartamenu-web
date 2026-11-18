@@ -16,7 +16,18 @@ const defaultTheme = {
   cardBtnTextColor: '#0a0a0a',
 }
 
-export async function getCurrentRestaurant() {
+export async function getCurrentRestaurant(restaurantId?: string) {
+  // Si se pasa un restaurantId (desde la sesión de auth), usarlo directamente
+  if (restaurantId) {
+    const restaurant = await prisma.restaurant.findUnique({
+      where: { id: restaurantId },
+    })
+    if (restaurant) {
+      return restaurant
+    }
+  }
+
+  // Fallback: restaurante por defecto o el primero (solo para uso sin sesión)
   const existing = await prisma.restaurant.findUnique({
     where: { slug: DEFAULT_RESTAURANT_SLUG },
   })
@@ -39,6 +50,12 @@ export async function getCurrentRestaurant() {
       slug: DEFAULT_RESTAURANT_SLUG,
       ...defaultTheme,
     },
+  })
+}
+
+export async function getRestaurantById(id: string) {
+  return prisma.restaurant.findUnique({
+    where: { id },
   })
 }
 

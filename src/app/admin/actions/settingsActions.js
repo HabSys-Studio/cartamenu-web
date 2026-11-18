@@ -2,7 +2,21 @@
 
 import { prisma } from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
+import { auth } from '@/auth'
 import { getCurrentRestaurant } from '@/lib/restaurant'
+
+async function getRestaurantFromSession() {
+  const session = await auth()
+  const restaurantId = session?.user?.restaurantId
+  if (!restaurantId) {
+    throw new Error('No hay sesión de administrador activa.')
+  }
+  const restaurant = await getCurrentRestaurant(restaurantId)
+  if (!restaurant) {
+    throw new Error('Restaurante no encontrado.')
+  }
+  return restaurant
+}
 
 const fallbackTheme = {
   bgColor: '#0a0a0a',
@@ -36,7 +50,7 @@ function readTheme(formData) {
 
 export async function getStoreSettings() {
   try {
-    return await getCurrentRestaurant()
+    return await getRestaurantFromSession()
   } catch (error) {
     console.error('Error al obtener la configuración de la tienda:', error)
     return fallbackTheme
@@ -45,7 +59,7 @@ export async function getStoreSettings() {
 
 export async function updateStoreSettings(formData) {
   try {
-    const restaurant = await getCurrentRestaurant()
+    const restaurant = await getRestaurantFromSession()
 
     await prisma.restaurant.update({
       where: { id: restaurant.id },

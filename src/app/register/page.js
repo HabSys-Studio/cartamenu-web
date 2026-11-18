@@ -38,6 +38,7 @@ export default function RegisterPage() {
   const [state, formAction, isPending] = useActionState(registerRestaurant, {
     error: null,
     success: false,
+    emailWarnings: null,
   })
 
   return (
@@ -149,6 +150,16 @@ export default function RegisterPage() {
           <div className="mt-4 p-4 bg-emerald-950/50 border border-emerald-800/80 rounded-xl text-center">
             <div className="text-emerald-400 text-2xl mb-2">✅</div>
             <h3 className="text-emerald-300 font-bold mb-2">¡Cuenta creada con éxito!</h3>
+            <p className="text-emerald-200 text-sm mb-3">
+              Tu restaurante y tu cuenta de administrador fueron creados correctamente.
+            </p>
+            {state?.emailWarnings && (
+              <div className="mb-3 p-3 bg-amber-950/50 border border-amber-800/80 rounded-xl text-amber-300 text-xs text-center">
+                {state.emailWarnings.map((w, i) => (
+                  <div key={i}>⚠️ {w}</div>
+                ))}
+              </div>
+            )}
             <p className="text-emerald-200 text-sm mb-3">
               Te enviamos un correo de verificación a tu bandeja de entrada. Revisá también la carpeta de spam.
             </p>

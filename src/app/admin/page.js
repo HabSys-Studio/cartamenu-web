@@ -1,14 +1,27 @@
 import { prisma } from '@/lib/prisma'
+import { auth } from '@/auth'
 import CategoryManager from '@/components/CategoryManager'
 import AdminProductList from '@/components/AdminProductList'
-import ThemeCustomizer from '@/components/ThemeCustomizer' // Importamos nuestro componente de estilos
+import ThemeCustomizer from '@/components/ThemeCustomizer'
 import { getCurrentRestaurant } from '@/lib/restaurant'
 import Link from 'next/link'
+import { redirect } from 'next/navigation'
 
 export const dynamic = 'force-dynamic'
 
 export default async function AdminDashboardPage() {
-  const restaurant = await getCurrentRestaurant()
+  const session = await auth()
+  const restaurantId = session?.user?.restaurantId
+
+  if (!restaurantId) {
+    redirect('/login')
+  }
+
+  const restaurant = await getCurrentRestaurant(restaurantId)
+
+  if (!restaurant) {
+    redirect('/login')
+  }
 
   const products = await prisma.product.findMany({
     where: { restaurantId: restaurant.id },
