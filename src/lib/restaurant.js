@@ -16,7 +16,7 @@ const defaultTheme = {
   cardBtnTextColor: '#0a0a0a',
 }
 
-export async function getCurrentRestaurant(restaurantId?: string) {
+export async function getCurrentRestaurant(restaurantId) {
   // Si se pasa un restaurantId (desde la sesión de auth), usarlo directamente
   if (restaurantId) {
     const restaurant = await prisma.restaurant.findUnique({
@@ -53,7 +53,7 @@ export async function getCurrentRestaurant(restaurantId?: string) {
   })
 }
 
-export async function getRestaurantById(id: string) {
+export async function getRestaurantById(id) {
   return prisma.restaurant.findUnique({
     where: { id },
   })
