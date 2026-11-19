@@ -41,7 +41,7 @@ export default function ResetPasswordPage() {
     <div className='min-h-screen bg-neutral-950 flex items-center justify-center p-4'>
       <div className='w-full max-w-md bg-neutral-900 border border-neutral-800 rounded-2xl p-8 shadow-2xl'>
         <Link href='/admin' className='text-amber-500 hover:text-amber-400 font-bold text-sm mb-4 block'>
-          <- Volver al panel
+          ← Volver al panel
         </Link>
         <h1 className='text-2xl font-black text-amber-500 tracking-tight mb-2'>
           Resetear contraseña
