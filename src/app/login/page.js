@@ -20,15 +20,12 @@ export default function LoginPage() {
         const result = await signIn('credentials', {
           email: String(email),
           password: String(password),
-          redirect: false,
+          redirect: true,
+          callbackUrl: '/admin',
         })
 
         if (result?.error) {
           setError(result.error)
-        } else if (result?.ok) {
-          window.location.href = '/admin'
-        } else {
-          setError('Error desconocido al iniciar sesión.')
         }
       } catch (err) {
         console.error('Login error:', err)
