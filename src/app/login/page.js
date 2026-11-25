@@ -1,8 +1,8 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { signIn } from 'next-auth/react'
 import Link from 'next/link'
+import { loginAction } from './actions'
 
 export default function LoginPage() {
   const [error, setError] = useState('')
@@ -12,25 +12,15 @@ export default function LoginPage() {
     event.preventDefault()
     setError('')
     const formData = new FormData(event.currentTarget)
-    const email = formData.get('email')
-    const password = formData.get('password')
 
     startTransition(async () => {
-      try {
-        const result = await signIn('credentials', {
-          email: String(email),
-          password: String(password),
-          redirect: true,
-          callbackUrl: '/admin',
-        })
+      // Llamar al server action directamente
+      const result = await loginAction(formData)
 
-        if (result?.error) {
-          setError(result.error)
-        }
-      } catch (err) {
-        console.error('Login error:', err)
-        setError('Error de conexión con el servidor. Intenta de nuevo.')
+      if (result?.error) {
+        setError(result.error)
       }
+      // Si no hay error, loginAction hace redirect() automáticamente
     })
   }
 
@@ -55,7 +45,7 @@ export default function LoginPage() {
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form action={loginAction} className="space-y-4">
           <div>
             <label className="block text-xs font-bold text-neutral-300 mb-1.5 uppercase tracking-wider">
               Correo Electrónico
