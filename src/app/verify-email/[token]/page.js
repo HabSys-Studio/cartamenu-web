@@ -52,7 +52,7 @@ export default async function VerifyEmailPage({ params }) {
     }
 
     // Marcar el email como verificado
-    await prisma.adminUser.update({
+    await prisma.user.update({
       where: { email: verificationToken.email },
       data: { emailVerified: true },
     })
