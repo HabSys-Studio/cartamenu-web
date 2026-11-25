@@ -1,17 +1,31 @@
 import { prisma } from '@/lib/prisma'
-import { notFound } from 'next/navigation'
+import { notFound, redirect } from 'next/navigation'
 import ProductForm from '../../new-product/ProductForm'
-import { getCurrentRestaurant } from '@/lib/restaurant'
+import { auth } from '@/auth'
+import { getUserRestaurants } from '@/lib/restaurant'
 
 export const dynamic = 'force-dynamic'
 
 export default async function EditProductPage({ params }) {
   const { id } = await params
 
-  const restaurant = await getCurrentRestaurant()
+  const session = await auth()
+  const userId = session?.user?.id
+
+  if (!userId) {
+    redirect('/login')
+  }
+
+  const userRestaurants = await getUserRestaurants(userId)
+
+  if (userRestaurants.length === 0) {
+    return null
+  }
+
+  const restaurantId = userRestaurants[0].id
 
   const product = await prisma.product.findFirst({
-    where: { id, restaurantId: restaurant.id },
+    where: { id, restaurantId },
   })
 
   if (!product) {

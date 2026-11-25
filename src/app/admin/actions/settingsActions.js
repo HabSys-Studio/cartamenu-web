@@ -3,17 +3,15 @@
 import { prisma } from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
 import { auth } from '@/auth'
-import { getCurrentRestaurant } from '@/lib/restaurant'
+import { getUserRestaurantAccess } from '@/lib/restaurant'
 
-async function getRestaurantFromSession() {
-  const session = await auth()
-  const restaurantId = session?.user?.restaurantId
+async function getRestaurantFromSession(userId, restaurantId) {
   if (!restaurantId) {
-    throw new Error('No hay sesión de administrador activa.')
+    throw new Error('No se ha especificado un restaurante.')
   }
-  const restaurant = await getCurrentRestaurant(restaurantId)
+  const restaurant = await getUserRestaurantAccess(userId, restaurantId)
   if (!restaurant) {
-    throw new Error('Restaurante no encontrado.')
+    throw new Error('No tienes acceso a este restaurante.')
   }
   return restaurant
 }
@@ -48,18 +46,29 @@ function readTheme(formData) {
   }
 }
 
-export async function getStoreSettings() {
+export async function getStoreSettings(restaurantId) {
   try {
-    return await getRestaurantFromSession()
+    const session = await auth()
+    const userId = session?.user?.id
+    if (!userId) {
+      return fallbackTheme
+    }
+    return await getRestaurantFromSession(userId, restaurantId)
   } catch (error) {
     console.error('Error al obtener la configuración de la tienda:', error)
     return fallbackTheme
   }
 }
 
-export async function updateStoreSettings(formData) {
+export async function updateStoreSettings(formData, restaurantId) {
   try {
-    const restaurant = await getRestaurantFromSession()
+    const session = await auth()
+    const userId = session?.user?.id
+    if (!userId) {
+      return { success: false, error: 'No hay sesión de administrador activa.' }
+    }
+
+    const restaurant = await getRestaurantFromSession(userId, restaurantId)
 
     await prisma.restaurant.update({
       where: { id: restaurant.id },

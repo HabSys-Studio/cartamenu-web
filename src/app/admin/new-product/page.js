@@ -1,16 +1,29 @@
 import { prisma } from '@/lib/prisma'
+import { auth } from '@/auth'
 import ProductForm from './ProductForm'
 import Link from 'next/link'
-import { getCurrentRestaurant } from '@/lib/restaurant'
+import { getUserRestaurants } from '@/lib/restaurant'
 
 export const dynamic = 'force-dynamic'
 
 export default async function NewProductPage() {
-  // Obtenemos las categorías existentes para alimentar el selector
-  const restaurant = await getCurrentRestaurant()
+  const session = await auth()
+  const userId = session?.user?.id
+
+  if (!userId) {
+    return null
+  }
+
+  const userRestaurants = await getUserRestaurants(userId)
+
+  if (userRestaurants.length === 0) {
+    return null
+  }
+
+  const restaurantId = userRestaurants[0].id
 
   const categories = await prisma.category.findMany({
-    where: { restaurantId: restaurant.id },
+    where: { restaurantId },
     orderBy: { order: 'asc' },
   })
 

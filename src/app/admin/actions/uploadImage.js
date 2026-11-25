@@ -1,7 +1,8 @@
 'use server'
 
 import { v2 as cloudinary } from 'cloudinary'
-import { getCurrentRestaurant } from '@/lib/restaurant'
+import { auth } from '@/auth'
+import { prisma } from '@/lib/prisma'
 
 cloudinary.config({
   cloud_name: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME,
@@ -9,8 +10,14 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET,
 })
 
-export async function uploadImageAction(formData) {
+export async function uploadImageAction(formData, restaurantId) {
   try {
+    const session = await auth()
+    const userId = session?.user?.id
+    if (!userId) {
+      throw new Error('No hay sesión de administrador activa.')
+    }
+
     const file = formData.get('file')
 
     if (!file || file.size === 0) {
@@ -29,10 +36,22 @@ export async function uploadImageAction(formData) {
       throw new Error('La imagen no puede superar los 2 MB.')
     }
 
+    // Validar acceso al restaurante y obtener su slug
+    const restaurant = await prisma.restaurant.findFirst({
+      where: {
+        id: restaurantId,
+        users: {
+          some: { userId },
+        },
+      },
+    })
+
+    if (!restaurant) {
+      throw new Error('No tienes acceso a este restaurante.')
+    }
+
     const arrayBuffer = await file.arrayBuffer()
     const buffer = Buffer.from(arrayBuffer)
-
-    const restaurant = await getCurrentRestaurant()
 
     const result = await new Promise((resolve, reject) => {
       cloudinary.uploader.upload_stream(

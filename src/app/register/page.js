@@ -2,7 +2,7 @@
 
 import { useActionState, useState } from 'react'
 import Link from 'next/link'
-import { registerRestaurant } from './actions'
+import { registerUser } from './actions'
 
 function PasswordInput({ name, label, placeholder, defaultValue }) {
   const [show, setShow] = useState(false)
@@ -35,7 +35,7 @@ function PasswordInput({ name, label, placeholder, defaultValue }) {
 }
 
 export default function RegisterPage() {
-  const [state, formAction, isPending] = useActionState(registerRestaurant, {
+  const [state, formAction, isPending] = useActionState(registerUser, {
     error: null,
     success: false,
     emailWarnings: null,
@@ -46,10 +46,10 @@ export default function RegisterPage() {
       <div className="w-full max-w-md bg-neutral-900 border border-neutral-800 rounded-2xl p-8 shadow-2xl">
         <div className="text-center mb-8">
           <h1 className="text-2xl font-black text-amber-500 tracking-tight mb-2">
-            Registrar tu Restaurante
+            Crear tu Cuenta
           </h1>
           <p className="text-xs text-neutral-400">
-            Crea tu cuenta de administrador en Carta Menú
+            Regístrate en Carta Menú. El administrador de la plataforma te asignará tu restaurante.
           </p>
         </div>
 
@@ -62,33 +62,16 @@ export default function RegisterPage() {
         <form action={formAction} className="space-y-4">
           <div>
             <label className="block text-xs font-bold text-neutral-300 mb-1.5 uppercase tracking-wider">
-              Nombre del Restaurante
+              Nombre y Apellido
             </label>
             <input
               name="name"
               type="text"
               required
               defaultValue={state?.formValues?.name ?? ''}
-              placeholder="Ej: Mi Pizzería"
+              placeholder="Ej: Juan Pérez"
               className="w-full bg-neutral-950 border border-neutral-800 rounded-xl px-4 py-3 text-sm text-neutral-100 focus:border-amber-500 outline-none transition"
             />
-          </div>
-
-          <div>
-            <label className="block text-xs font-bold text-neutral-300 mb-1.5 uppercase tracking-wider">
-              Slug (URL de tu menú)
-            </label>
-            <input
-              name="slug"
-              type="text"
-              required
-              defaultValue={state?.formValues?.slug ?? ''}
-              placeholder="Ej: mi-pizzeria"
-              className="w-full bg-neutral-950 border border-neutral-800 rounded-xl px-4 py-3 text-sm text-neutral-100 focus:border-amber-500 outline-none transition"
-            />
-            <p className="text-[10px] text-neutral-500 mt-1">
-              Tu menú estará en: tuapp.vercel.app/mi-pizzeria
-            </p>
           </div>
 
           <div>
@@ -151,7 +134,10 @@ export default function RegisterPage() {
             <div className="text-emerald-400 text-2xl mb-2">✅</div>
             <h3 className="text-emerald-300 font-bold mb-2">¡Cuenta creada con éxito!</h3>
             <p className="text-emerald-200 text-sm mb-3">
-              Tu restaurante y tu cuenta de administrador fueron creados correctamente.
+              Tu cuenta de usuario ha sido creada correctamente.
+            </p>
+            <p className="text-emerald-200 text-sm mb-3">
+              El administrador de la plataforma te asignará un restaurante. Una vez asignado, podrás iniciar sesión y administrarlo.
             </p>
             {state?.emailWarnings && (
               <div className="mb-3 p-3 bg-amber-950/50 border border-amber-800/80 rounded-xl text-amber-300 text-xs text-center">

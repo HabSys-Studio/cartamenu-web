@@ -3,7 +3,8 @@
 import { v2 as cloudinary } from 'cloudinary'
 import { prisma } from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
-import { getCurrentRestaurant, getOwnedCategory, getOwnedProduct } from '@/lib/restaurant'
+import { auth } from '@/auth'
+import { getUserRestaurantAccess, getOwnedCategory, getOwnedProduct } from '@/lib/restaurant'
 
 // Configurar Cloudinary con las variables de entorno
 cloudinary.config({
@@ -32,8 +33,14 @@ function getPublicIdFromUrl(url) {
 /**
  * Action: Crear un nuevo producto con subida opcional de imagen a Cloudinary.
  */
-export async function createProductAction(formData) {
+export async function createProductAction(formData, restaurantId) {
   try {
+    const session = await auth()
+    const userId = session?.user?.id
+    if (!userId) {
+      return { success: false, error: 'No hay sesión de administrador activa.' }
+    }
+
     const name = formData.get('name')
     const description = formData.get('description')
     const price = parseFloat(formData.get('price'))
@@ -44,9 +51,13 @@ export async function createProductAction(formData) {
       return { success: false, error: 'Los campos Nombre, Precio y Categoría son obligatorios y válidos.' }
     }
 
-    // Validar que la categoría pertenezca al restaurante del usuario autenticado
-    const restaurant = await getCurrentRestaurant()
-    const category = await getOwnedCategory(restaurant.id, categoryId)
+    // Validar que el usuario tenga acceso al restaurante
+    const restaurant = await getUserRestaurantAccess(userId, restaurantId)
+    if (!restaurant) {
+      return { success: false, error: 'No tienes acceso a este restaurante.' }
+    }
+
+    const category = await getOwnedCategory(restaurantId, categoryId)
 
     if (!category) {
       return { success: false, error: 'La categoría no pertenece a este restaurante.' }
@@ -83,7 +94,7 @@ export async function createProductAction(formData) {
         price,
         imageUrl,
         categoryId,
-        restaurantId: restaurant.id,
+        restaurantId,
         available: true,
       },
     })
@@ -102,15 +113,25 @@ export async function createProductAction(formData) {
 /**
  * Action: Eliminar un producto de la base de datos y su imagen remota en Cloudinary.
  */
-export async function deleteProductAction(productId) {
+export async function deleteProductAction(productId, restaurantId) {
   try {
     if (!productId) {
       return { success: false, error: 'Identificador de producto no provisto.' }
     }
 
-    // Validar que el producto pertenezca al restaurante del usuario autenticado
-    const restaurant = await getCurrentRestaurant()
-    const product = await getOwnedProduct(restaurant.id, productId)
+    const session = await auth()
+    const userId = session?.user?.id
+    if (!userId) {
+      return { success: false, error: 'No hay sesión de administrador activa.' }
+    }
+
+    // Validar que el usuario tenga acceso al restaurante
+    const restaurant = await getUserRestaurantAccess(userId, restaurantId)
+    if (!restaurant) {
+      return { success: false, error: 'No tienes acceso a este restaurante.' }
+    }
+
+    const product = await getOwnedProduct(restaurantId, productId)
 
     if (!product) {
       return { success: false, error: 'El producto no pertenece a este restaurante.' }
@@ -142,15 +163,25 @@ export async function deleteProductAction(productId) {
 /**
  * Action: Alternar la disponibilidad (Disponible / Agotado) de un producto.
  */
-export async function toggleProductAvailabilityAction(productId, currentStatus) {
+export async function toggleProductAvailabilityAction(productId, currentStatus, restaurantId) {
   try {
     if (!productId) {
       return { success: false, error: 'Identificador de producto no provisto.' }
     }
 
-    // Validar que el producto pertenezca al restaurante del usuario autenticado
-    const restaurant = await getCurrentRestaurant()
-    const product = await getOwnedProduct(restaurant.id, productId)
+    const session = await auth()
+    const userId = session?.user?.id
+    if (!userId) {
+      return { success: false, error: 'No hay sesión de administrador activa.' }
+    }
+
+    // Validar que el usuario tenga acceso al restaurante
+    const restaurant = await getUserRestaurantAccess(userId, restaurantId)
+    if (!restaurant) {
+      return { success: false, error: 'No tienes acceso a este restaurante.' }
+    }
+
+    const product = await getOwnedProduct(restaurantId, productId)
 
     if (!product) {
       return { success: false, error: 'El producto no pertenece a este restaurante.' }

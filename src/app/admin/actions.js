@@ -3,25 +3,31 @@
 import { prisma } from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
 import { auth } from '@/auth'
-import { getCurrentRestaurant, getOwnedCategory, getOwnedProduct } from '@/lib/restaurant'
+import { getUserRestaurantAccess, getOwnedCategory, getOwnedProduct } from '@/lib/restaurant'
 
-async function getRestaurantFromSession() {
-  const session = await auth()
-  const restaurantId = session?.user?.restaurantId
+async function getRestaurantFromSession(userId, restaurantId) {
   if (!restaurantId) {
-    throw new Error('No hay sesión de administrador activa.')
+    throw new Error('No se ha especificado un restaurante.')
   }
-  const restaurant = await getCurrentRestaurant(restaurantId)
+  const restaurant = await getUserRestaurantAccess(userId, restaurantId)
   if (!restaurant) {
-    throw new Error('Restaurante no encontrado.')
+    throw new Error('No tienes acceso a este restaurante.')
   }
   return restaurant
 }
 
 // --- GESTIÓN DE PRODUCTOS ---
 
-export async function saveProduct(formData) {
+export async function saveProduct(formData, restaurantId) {
   try {
+    const session = await auth()
+    const userId = session?.user?.id
+    if (!userId) {
+      return { success: false, error: 'No hay sesión de administrador activa.' }
+    }
+
+    const restaurant = await getRestaurantFromSession(userId, restaurantId)
+
     const id = formData.get('id')
     const name = formData.get('name')
     const description = formData.get('description') || ''
@@ -35,22 +41,21 @@ export async function saveProduct(formData) {
       return { success: false, error: 'Por favor completa los campos obligatorios.' }
     }
 
-    const restaurant = await getRestaurantFromSession()
-    const category = await getOwnedCategory(restaurant.id, categoryId)
+    const category = await getOwnedCategory(restaurantId, categoryId)
 
     if (!category) {
       return { success: false, error: 'La categoría no pertenece a este local.' }
     }
 
     if (id) {
-      const product = await getOwnedProduct(restaurant.id, id)
+      const product = await getOwnedProduct(restaurantId, id)
       if (!product) {
         return { success: false, error: 'El producto no pertenece a este local.' }
       }
 
       await prisma.product.update({
         where: { id },
-        data: { name, description, price, categoryId, imageUrl, order, restaurantId: restaurant.id },
+        data: { name, description, price, categoryId, imageUrl, order },
       })
     } else {
       await prisma.product.create({
@@ -62,7 +67,7 @@ export async function saveProduct(formData) {
           imageUrl,
           available: true,
           order,
-          restaurantId: restaurant.id,
+          restaurantId,
         },
       })
     }
@@ -76,10 +81,16 @@ export async function saveProduct(formData) {
   }
 }
 
-export async function toggleProductAvailability(id, currentStatus) {
+export async function toggleProductAvailability(id, currentStatus, restaurantId) {
   try {
-    const restaurant = await getRestaurantFromSession()
-    const product = await getOwnedProduct(restaurant.id, id)
+    const session = await auth()
+    const userId = session?.user?.id
+    if (!userId) {
+      return { success: false }
+    }
+
+    const restaurant = await getRestaurantFromSession(userId, restaurantId)
+    const product = await getOwnedProduct(restaurantId, id)
 
     if (!product) {
       return { success: false }
@@ -99,10 +110,16 @@ export async function toggleProductAvailability(id, currentStatus) {
   }
 }
 
-export async function deleteProduct(id) {
+export async function deleteProduct(id, restaurantId) {
   try {
-    const restaurant = await getRestaurantFromSession()
-    const product = await getOwnedProduct(restaurant.id, id)
+    const session = await auth()
+    const userId = session?.user?.id
+    if (!userId) {
+      return { success: false }
+    }
+
+    const restaurant = await getRestaurantFromSession(userId, restaurantId)
+    const product = await getOwnedProduct(restaurantId, id)
 
     if (!product) {
       return { success: false }
@@ -123,8 +140,16 @@ export async function deleteProduct(id) {
 
 // --- GESTIÓN DE CATEGORÍAS ---
 
-export async function createCategory(formData) {
+export async function createCategory(formData, restaurantId) {
   try {
+    const session = await auth()
+    const userId = session?.user?.id
+    if (!userId) {
+      return { success: false, error: 'No hay sesión de administrador activa.' }
+    }
+
+    const restaurant = await getRestaurantFromSession(userId, restaurantId)
+
     const name = formData.get('name')
     const orderInput = formData.get('order')
     const order = orderInput ? parseInt(orderInput, 10) : 0
@@ -133,10 +158,8 @@ export async function createCategory(formData) {
       return { success: false, error: 'El nombre de la categoría es requerido.' }
     }
 
-    const restaurant = await getRestaurantFromSession()
-
     await prisma.category.create({
-      data: { name, order, restaurantId: restaurant.id },
+      data: { name, order, restaurantId },
     })
 
     revalidatePath('/')
@@ -148,14 +171,20 @@ export async function createCategory(formData) {
   }
 }
 
-export async function updateCategory(id, name, order) {
+export async function updateCategory(id, name, order, restaurantId) {
   try {
+    const session = await auth()
+    const userId = session?.user?.id
+    if (!userId) {
+      return { success: false, error: 'No hay sesión de administrador activa.' }
+    }
+
     if (!name) {
       return { success: false, error: 'El nombre no puede estar vacío.' }
     }
 
-    const restaurant = await getRestaurantFromSession()
-    const category = await getOwnedCategory(restaurant.id, id)
+    const restaurant = await getRestaurantFromSession(userId, restaurantId)
+    const category = await getOwnedCategory(restaurantId, id)
 
     if (!category) {
       return { success: false, error: 'La categoría no pertenece a este local.' }
@@ -178,17 +207,23 @@ export async function updateCategory(id, name, order) {
   }
 }
 
-export async function deleteCategory(id) {
+export async function deleteCategory(id, restaurantId) {
   try {
-    const restaurant = await getRestaurantFromSession()
-    const category = await getOwnedCategory(restaurant.id, id)
+    const session = await auth()
+    const userId = session?.user?.id
+    if (!userId) {
+      return { success: false, error: 'No hay sesión de administrador activa.' }
+    }
+
+    const restaurant = await getRestaurantFromSession(userId, restaurantId)
+    const category = await getOwnedCategory(restaurantId, id)
 
     if (!category) {
       return { success: false, error: 'La categoría no pertenece a este local.' }
     }
 
     const productsCount = await prisma.product.count({
-      where: { categoryId: id, restaurantId: restaurant.id },
+      where: { categoryId: id, restaurantId },
     })
 
     if (productsCount > 0) {

@@ -7,27 +7,63 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model User {
+  id            String     @id @default(uuid())
+  name          String?
+  email         String     @unique
+  password      String
+  role          String     @default("USER") // USER, ADMIN
+  plan          String     @default("FREE") // FREE, PRO, ENTERPRISE
+  maxRestaurants Int       @default(1)
+  emailVerified Boolean   @default(false)
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+
+  restaurants         UserRestaurant[]
+  ownedRestaurants    Restaurant[]
+  verificationTokens  VerificationToken[]
+  passwordResetTokens PasswordResetToken[]
+
+  @@index([email])
+}
+
 model Restaurant {
-  id                 String      @id @default(uuid())
-  name               String
-  slug               String      @unique
-  bgColor            String      @default("#0a0a0a")
-  menuTitleColor     String      @default("#f59e0b")
-  searchBgColor      String      @default("#171717")
-  searchBtnColor     String      @default("#262626")
-  searchBtnTextColor String      @default("#ededed")
-  cardBgColor        String      @default("#171717")
-  cardTitleColor     String      @default("#ededed")
-  cardDescColor      String      @default("#a3a3a3")
-  cardPriceColor     String      @default("#f59e0b")
-  cardBtnColor       String      @default("#f59e0b")
-  cardBtnTextColor   String      @default("#0a0a0a")
-  categories         Category[]
-  products           Product[]
-  admins             AdminUser[]
-  orders             Order[]
-  createdAt          DateTime    @default(now())
-  updatedAt          DateTime    @updatedAt
+  id            String      @id @default(uuid())
+  name          String
+  slug          String      @unique
+  ownerId       String
+  owner         User        @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  bgColor       String      @default("#0a0a0a")
+  menuTitleColor String     @default("#f59e0b")
+  searchBgColor  String     @default("#171717")
+  searchBtnColor String     @default("#262626")
+  searchBtnTextColor String @default("#ededed")
+  cardBgColor    String     @default("#171717")
+  cardTitleColor String     @default("#ededed")
+  cardDescColor  String     @default("#a3a3a3")
+  cardPriceColor String     @default("#f59e0b")
+  cardBtnColor   String     @default("#f59e0b")
+  cardBtnTextColor String   @default("#0a0a0a")
+  users         UserRestaurant[]
+  categories    Category[]
+  products      Product[]
+  orders        Order[]
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+}
+
+model UserRestaurant {
+  id            String     @id @default(uuid())
+  userId        String
+  user          User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  restaurantId  String
+  restaurant    Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  role          String     @default("ADMIN") // OWNER, ADMIN, STAFF
+  createdAt     DateTime   @default(now())
+
+  @@unique([userId, restaurantId])
+  @@index([userId])
+  @@index([restaurantId])
 }
 
 model Category {
@@ -61,28 +97,6 @@ model Product {
   @@index([restaurantId])
 }
 
-model AdminUser {
-  id           String     @id @default(uuid())
-  email        String     @unique
-  password     String
-  restaurantId String
-  restaurant   Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
-  emailVerified Boolean   @default(false)
-
-  @@index([restaurantId])
-}
-
-model VerificationToken {
-  id        String   @id @default(uuid())
-  email     String
-  token     String   @unique
-  expires   DateTime
-  createdAt DateTime @default(now())
-
-  @@index([email])
-  @@index([token])
-}
-
 model Order {
   id           String     @id @default(uuid())
   restaurantId String
@@ -114,12 +128,27 @@ model OrderItem {
   notes     String?
 }
 
+model VerificationToken {
+  id        String   @id @default(uuid())
+  email     String
+  token     String   @unique
+  expires   DateTime
+  createdAt DateTime @default(now())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([email])
+  @@index([token])
+}
+
 model PasswordResetToken {
   id        String   @id @default(uuid())
   email     String
   token     String   @unique
   expires   DateTime
   createdAt DateTime @default(now())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([email])
   @@index([token])

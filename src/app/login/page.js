@@ -12,13 +12,11 @@ export default function LoginPage() {
     event.preventDefault()
     setError('')
     const formData = new FormData(event.currentTarget)
-    const restaurantName = formData.get('restaurantName')
     const email = formData.get('email')
     const password = formData.get('password')
 
     startTransition(async () => {
       const result = await signIn('credentials', {
-        restaurantName: String(restaurantName),
         email: String(email),
         password: String(password),
         redirect: false,
@@ -54,19 +52,6 @@ export default function LoginPage() {
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-xs font-bold text-neutral-300 mb-1.5 uppercase tracking-wider">
-              Nombre del Restaurante
-            </label>
-            <input
-              name="restaurantName"
-              type="text"
-              required
-              placeholder="Ej: Mi Pizzería"
-              className="w-full bg-neutral-950 border border-neutral-800 focus:border-amber-500 text-neutral-100 rounded-xl p-3 text-sm outline-none transition"
-            />
-          </div>
-
           <div>
             <label className="block text-xs font-bold text-neutral-300 mb-1.5 uppercase tracking-wider">
               Correo Electrónico

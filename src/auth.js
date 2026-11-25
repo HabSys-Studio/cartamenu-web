@@ -8,28 +8,25 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     Credentials({
       name: 'Credentials',
       credentials: {
-        restaurantName: { label: 'Restaurant Name', type: 'text' },
         email: { label: 'Email', type: 'email' },
         password: { label: 'Password', type: 'password' },
       },
       async authorize(credentials) {
-        const restaurantName = credentials?.restaurantName
         const email = credentials?.email
         const password = credentials?.password
 
-        if (!restaurantName || !email || !password) {
+        if (!email || !password) {
           return null
         }
 
-        const user = await prisma.adminUser.findFirst({
-          where: {
-            email: String(email),
-            restaurant: {
-              name: String(restaurantName),
-            },
-          },
+        const user = await prisma.user.findUnique({
+          where: { email: String(email) },
           include: {
-            restaurant: true,
+            restaurants: {
+              include: {
+                restaurant: true,
+              },
+            },
           },
         })
 
@@ -49,8 +46,16 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         return {
           id: user.id,
           email: user.email,
-          restaurantId: user.restaurantId,
-          restaurantName: user.restaurant.name,
+          name: user.name,
+          role: user.role,
+          plan: user.plan,
+          maxRestaurants: user.maxRestaurants,
+          restaurants: user.restaurants.map((ur) => ({
+            id: ur.restaurant.id,
+            name: ur.restaurant.name,
+            slug: ur.restaurant.slug,
+            role: ur.role,
+          })),
         }
       },
     }),
@@ -65,13 +70,25 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
-        token.restaurantId = user.restaurantId
+        token.id = user.id
+        token.email = user.email
+        token.name = user.name
+        token.role = user.role
+        token.plan = user.plan
+        token.maxRestaurants = user.maxRestaurants
+        token.restaurants = user.restaurants
       }
       return token
     },
     async session({ session, token }) {
       if (token) {
-        session.user.restaurantId = token.restaurantId
+        session.user.id = token.id
+        session.user.email = token.email
+        session.user.name = token.name
+        session.user.role = token.role
+        session.user.plan = token.plan
+        session.user.maxRestaurants = token.maxRestaurants
+        session.user.restaurants = token.restaurants
       }
       return session
     },
