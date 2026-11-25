@@ -16,16 +16,23 @@ export default function LoginPage() {
     const password = formData.get('password')
 
     startTransition(async () => {
-      const result = await signIn('credentials', {
-        email: String(email),
-        password: String(password),
-        redirect: false,
-      })
+      try {
+        const result = await signIn('credentials', {
+          email: String(email),
+          password: String(password),
+          redirect: false,
+        })
 
-      if (result?.error) {
-        setError('Credenciales inválidas. Verifica tu correo o contraseña.')
-      } else {
-        window.location.href = '/admin'
+        if (result?.error) {
+          setError(result.error)
+        } else if (result?.ok) {
+          window.location.href = '/admin'
+        } else {
+          setError('Error desconocido al iniciar sesión.')
+        }
+      } catch (err) {
+        console.error('Login error:', err)
+        setError('Error de conexión con el servidor. Intenta de nuevo.')
       }
     })
   }
