@@ -50,5 +50,5 @@ export async function loginAction(formData) {
     path: '/',
   })
 
-  redirect('/admin')
+  return { success: true }
 }
