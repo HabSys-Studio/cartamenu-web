@@ -14,13 +14,19 @@ export default function LoginPage() {
     const formData = new FormData(event.currentTarget)
 
     startTransition(async () => {
-      // Llamar al server action directamente
+      // Llamar al server action
       const result = await loginAction(formData)
 
+      // Si hay error, mostrar mensaje
       if (result?.error) {
         setError(result.error)
       }
-      // Si no hay error, loginAction hace redirect() automáticamente
+      // Si success, esperar un instante y redirigir
+      if (result?.success) {
+        setTimeout(() => {
+          window.location.href = '/admin'
+        }, 100)
+      }
     })
   }
 
