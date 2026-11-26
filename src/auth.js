@@ -3,6 +3,7 @@ import Credentials from 'next-auth/providers/credentials';
 import bcrypt from 'bcryptjs';
 import { prisma } from '@/lib/prisma';
 
+// Función auxiliar para obtener restaurantes del usuario
 async function getUserRestaurants(userId) {
   const memberships = await prisma.userRestaurant.findMany({
     where: { userId },
@@ -30,10 +31,14 @@ async function getUserRestaurants(userId) {
   }));
 }
 
+// ✅ NEXT-AUTH V5: Configuración completa con secret explícito
 export const { handlers, auth, signIn, signOut } = NextAuth({
   session: {
     strategy: 'jwt',
   },
+  // ✅ Secret explícito (puede coincidir con NEXTAUTH_SECRET del .env.local)
+  secret: process.env.NEXTAUTH_SECRET,
+  
   pages: {
     signIn: '/admin/login',
   },
