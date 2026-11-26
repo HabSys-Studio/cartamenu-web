@@ -1,13 +1,16 @@
 'use client'
 
-import { useActionState, useState } from 'react'
+import { useActionState } from 'react'
 import Link from 'next/link'
 import { createRestaurantAction } from './actions'
 
 export default function CreateRestaurantPage() {
   const [state, formAction, isPending] = useActionState(createRestaurantAction, {
     error: null,
-    success: null,
+    success: false,
+    restaurant: null,
+    ownerEmail: null,
+    ownerWasCreated: false,
   })
 
   return (
@@ -31,16 +34,16 @@ export default function CreateRestaurantPage() {
           </div>
         )}
 
-        {state?.success && (
+        {state?.success && state?.restaurant && (
           <div className="mb-4 p-4 bg-emerald-950/50 border border-emerald-800/80 rounded-xl text-center">
             <div className="text-emerald-400 text-2xl mb-2">✅</div>
             <h3 className="text-emerald-300 font-bold mb-2">¡Restaurante creado!</h3>
             <p className="text-emerald-200 text-sm mb-3">
-              {state.restaurant.name} ({state.restaurant.slug})
+              {state.restaurant.name} (/{state.restaurant.slug})
             </p>
             {state.ownerWasCreated && (
               <p className="text-emerald-200 text-xs mb-3">
-                Se creó una nueva cuenta para <strong>{state.ownerEmail}</strong>. Compartí las credenciales de acceso.
+                Se creó una nueva cuenta para <strong>{state.ownerEmail}</strong>. Compartí las credenciales de acceso y recordá que deberá restablecer su contraseña.
               </p>
             )}
             <p className="text-emerald-200 text-xs mb-3">

@@ -6,11 +6,9 @@ import AdminProductRow from './AdminProductRow'
 export default function AdminProductList({ products = [], categories = [] }) {
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('ALL')
-  
-  // Estado para múltiples reglas de ordenamiento: [{ field: 'category', direction: 'asc' }, ...]
+
   const [sortRules, setSortRules] = useState([])
 
-  // Función para manejar el clic en las cabeceras de la tabla (Soporte Multinivel)
   const handleSort = (field) => {
     setSortRules((prevRules) => {
       const existingIndex = prevRules.findIndex((rule) => rule.field === field)
@@ -18,32 +16,30 @@ export default function AdminProductList({ products = [], categories = [] }) {
       if (existingIndex !== -1) {
         const currentRule = prevRules[existingIndex]
         if (currentRule.direction === 'asc') {
-          // Cambiar a descendente
           const updated = [...prevRules]
           updated[existingIndex] = { field, direction: 'desc' }
           return updated
         } else {
-          // Remover regla si ya estaba en 'desc'
           return prevRules.filter((rule) => rule.field !== field)
         }
       } else {
-        // Agregar nueva regla al final de la jerarquía de orden
         return [...prevRules, { field, direction: 'asc' }]
       }
     })
   }
 
-  // Limpiar todas las reglas de ordenamiento
   const clearSorts = () => setSortRules([])
 
-  // Filtrado y Ordenamiento Multinivel reactivo en tiempo real
   const filteredAndSortedProducts = useMemo(() => {
-    // 1. Filtrar por búsqueda y categoría
+    const normalizedQuery = searchQuery.toLowerCase()
+
     const result = products.filter((product) => {
+      const productName = (product.name || '').toLowerCase()
+      const productDesc = (product.description || '').toLowerCase()
+
       const matchesSearch =
-        product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (product.description &&
-          product.description.toLowerCase().includes(searchQuery.toLowerCase()))
+        productName.includes(normalizedQuery) ||
+        productDesc.includes(normalizedQuery)
 
       const matchesCategory =
         selectedCategory === 'ALL' || product.categoryId === selectedCategory
@@ -51,7 +47,6 @@ export default function AdminProductList({ products = [], categories = [] }) {
       return matchesSearch && matchesCategory
     })
 
-    // 2. Aplicar Ordenamiento Multinivel si existen reglas
     if (sortRules.length > 0) {
       result.sort((a, b) => {
         for (const rule of sortRules) {
@@ -59,8 +54,8 @@ export default function AdminProductList({ products = [], categories = [] }) {
 
           switch (rule.field) {
             case 'name':
-              valA = a.name.toLowerCase()
-              valB = b.name.toLowerCase()
+              valA = (a.name || '').toLowerCase()
+              valB = (b.name || '').toLowerCase()
               break
             case 'category':
               valA = (a.category?.name || '').toLowerCase()
@@ -92,7 +87,6 @@ export default function AdminProductList({ products = [], categories = [] }) {
     return result
   }, [products, searchQuery, selectedCategory, sortRules])
 
-  // Obtener el indicador visual y la prioridad numérica de una columna en las reglas activas
   const getSortMeta = (field) => {
     const index = sortRules.findIndex((rule) => rule.field === field)
     if (index === -1) {
@@ -105,7 +99,6 @@ export default function AdminProductList({ products = [], categories = [] }) {
     }
   }
 
-  // Nombres legibles para los badges de orden activo
   const fieldLabels = {
     name: 'Producto',
     category: 'Categoría',
@@ -116,8 +109,6 @@ export default function AdminProductList({ products = [], categories = [] }) {
 
   return (
     <div className="bg-neutral-900 border border-neutral-800 rounded-2xl overflow-hidden shadow-xl">
-      
-      {/* Cabecera del Módulo y Controles de Búsqueda/Filtro */}
       <div className="p-5 border-b border-neutral-800 space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
@@ -125,7 +116,7 @@ export default function AdminProductList({ products = [], categories = [] }) {
               Gestión de Productos
             </h2>
             <p className="text-xs text-neutral-400 mt-0.5">
-              Haz clic en las columnas para aplicar ordenamiento múltiple encadenado.
+              Hacé clic en las columnas para aplicar ordenamiento múltiple encadenado.
             </p>
           </div>
           <span className="text-xs font-semibold text-neutral-400">
@@ -133,10 +124,11 @@ export default function AdminProductList({ products = [], categories = [] }) {
           </span>
         </div>
 
-        {/* Panel de Indicadores de Ordenamiento Activo (Multinivel) */}
         {sortRules.length > 0 && (
           <div className="flex flex-wrap items-center gap-2 bg-neutral-950 border border-neutral-800 p-2.5 rounded-xl text-xs">
-            <span className="text-neutral-400 font-bold uppercase tracking-wider text-[10px]">Orden activo:</span>
+            <span className="text-neutral-400 font-bold uppercase tracking-wider text-[10px]">
+              Orden activo:
+            </span>
             {sortRules.map((rule, idx) => (
               <span
                 key={rule.field}
@@ -150,6 +142,7 @@ export default function AdminProductList({ products = [], categories = [] }) {
               </span>
             ))}
             <button
+              type="button"
               onClick={clearSorts}
               className="ml-auto text-neutral-400 hover:text-rose-400 font-bold text-[11px] transition"
             >
@@ -158,10 +151,7 @@ export default function AdminProductList({ products = [], categories = [] }) {
           </div>
         )}
 
-        {/* Barra de Búsqueda y Selector de Categorías */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          
-          {/* Buscador de Texto */}
           <div className="sm:col-span-2 relative">
             <span className="absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none text-neutral-500 text-xs">
               🔍
@@ -175,6 +165,7 @@ export default function AdminProductList({ products = [], categories = [] }) {
             />
             {searchQuery && (
               <button
+                type="button"
                 onClick={() => setSearchQuery('')}
                 className="absolute inset-y-0 right-0 flex items-center pr-3 text-neutral-500 hover:text-neutral-300 text-xs font-bold"
               >
@@ -183,7 +174,6 @@ export default function AdminProductList({ products = [], categories = [] }) {
             )}
           </div>
 
-          {/* Filtro por Categoría */}
           <div>
             <select
               value={selectedCategory}
@@ -201,18 +191,14 @@ export default function AdminProductList({ products = [], categories = [] }) {
               })}
             </select>
           </div>
-
         </div>
       </div>
 
-      {/* Tabla de Productos con Orden Multinivel */}
       <div className="overflow-x-auto">
         <table className="w-full text-left border-collapse">
           <thead>
             <tr className="bg-neutral-950 border-b border-neutral-800 text-[11px] font-extrabold uppercase text-neutral-400 tracking-wider">
-              
-              {/* Columna Producto */}
-              <th 
+              <th
                 onClick={() => handleSort('name')}
                 className="py-3.5 px-4 cursor-pointer hover:text-amber-400 transition select-none"
               >
@@ -223,7 +209,9 @@ export default function AdminProductList({ products = [], categories = [] }) {
                     return meta.active ? (
                       <span className="text-amber-500 flex items-center gap-0.5 text-[10px]">
                         <span>{meta.direction === 'asc' ? '▲' : '▼'}</span>
-                        <span className="bg-neutral-800 text-neutral-300 px-1 rounded">{meta.index}</span>
+                        <span className="bg-neutral-800 text-neutral-300 px-1 rounded">
+                          {meta.index}
+                        </span>
                       </span>
                     ) : (
                       <span className="text-neutral-600 text-[10px]">↕</span>
@@ -232,8 +220,7 @@ export default function AdminProductList({ products = [], categories = [] }) {
                 </div>
               </th>
 
-              {/* Columna Categoría */}
-              <th 
+              <th
                 onClick={() => handleSort('category')}
                 className="py-3.5 px-4 cursor-pointer hover:text-amber-400 transition select-none"
               >
@@ -244,7 +231,9 @@ export default function AdminProductList({ products = [], categories = [] }) {
                     return meta.active ? (
                       <span className="text-amber-500 flex items-center gap-0.5 text-[10px]">
                         <span>{meta.direction === 'asc' ? '▲' : '▼'}</span>
-                        <span className="bg-neutral-800 text-neutral-300 px-1 rounded">{meta.index}</span>
+                        <span className="bg-neutral-800 text-neutral-300 px-1 rounded">
+                          {meta.index}
+                        </span>
                       </span>
                     ) : (
                       <span className="text-neutral-600 text-[10px]">↕</span>
@@ -253,8 +242,7 @@ export default function AdminProductList({ products = [], categories = [] }) {
                 </div>
               </th>
 
-              {/* Columna Prioridad */}
-              <th 
+              <th
                 onClick={() => handleSort('order')}
                 className="py-3.5 px-4 cursor-pointer hover:text-amber-400 transition select-none"
               >
@@ -265,7 +253,9 @@ export default function AdminProductList({ products = [], categories = [] }) {
                     return meta.active ? (
                       <span className="text-amber-500 flex items-center gap-0.5 text-[10px]">
                         <span>{meta.direction === 'asc' ? '▲' : '▼'}</span>
-                        <span className="bg-neutral-800 text-neutral-300 px-1 rounded">{meta.index}</span>
+                        <span className="bg-neutral-800 text-neutral-300 px-1 rounded">
+                          {meta.index}
+                        </span>
                       </span>
                     ) : (
                       <span className="text-neutral-600 text-[10px]">↕</span>
@@ -274,8 +264,7 @@ export default function AdminProductList({ products = [], categories = [] }) {
                 </div>
               </th>
 
-              {/* Columna Precio */}
-              <th 
+              <th
                 onClick={() => handleSort('price')}
                 className="py-3.5 px-4 cursor-pointer hover:text-amber-400 transition select-none"
               >
@@ -286,7 +275,9 @@ export default function AdminProductList({ products = [], categories = [] }) {
                     return meta.active ? (
                       <span className="text-amber-500 flex items-center gap-0.5 text-[10px]">
                         <span>{meta.direction === 'asc' ? '▲' : '▼'}</span>
-                        <span className="bg-neutral-800 text-neutral-300 px-1 rounded">{meta.index}</span>
+                        <span className="bg-neutral-800 text-neutral-300 px-1 rounded">
+                          {meta.index}
+                        </span>
                       </span>
                     ) : (
                       <span className="text-neutral-600 text-[10px]">↕</span>
@@ -295,8 +286,7 @@ export default function AdminProductList({ products = [], categories = [] }) {
                 </div>
               </th>
 
-              {/* Columna Estado */}
-              <th 
+              <th
                 onClick={() => handleSort('available')}
                 className="py-3.5 px-4 cursor-pointer hover:text-amber-400 transition select-none"
               >
@@ -307,7 +297,9 @@ export default function AdminProductList({ products = [], categories = [] }) {
                     return meta.active ? (
                       <span className="text-amber-500 flex items-center gap-0.5 text-[10px]">
                         <span>{meta.direction === 'asc' ? '▲' : '▼'}</span>
-                        <span className="bg-neutral-800 text-neutral-300 px-1 rounded">{meta.index}</span>
+                        <span className="bg-neutral-800 text-neutral-300 px-1 rounded">
+                          {meta.index}
+                        </span>
                       </span>
                     ) : (
                       <span className="text-neutral-600 text-[10px]">↕</span>
@@ -322,7 +314,10 @@ export default function AdminProductList({ products = [], categories = [] }) {
           <tbody>
             {filteredAndSortedProducts.length === 0 ? (
               <tr>
-                <td colSpan={6} className="py-12 text-center text-xs text-neutral-500 italic">
+                <td
+                  colSpan={6}
+                  className="py-12 text-center text-xs text-neutral-500 italic"
+                >
                   {searchQuery || selectedCategory !== 'ALL'
                     ? 'No se encontraron productos que coincidan con la búsqueda o filtro aplicados.'
                     : 'No hay productos registrados en el sistema.'}
@@ -336,7 +331,6 @@ export default function AdminProductList({ products = [], categories = [] }) {
           </tbody>
         </table>
       </div>
-
     </div>
   )
 }

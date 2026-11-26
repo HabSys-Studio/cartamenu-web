@@ -6,14 +6,18 @@ const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
 let transporter: nodemailer.Transporter | null = null
 
 function getTransporter() {
+  if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
+    throw new Error('Faltan configurar SMTP_USER o SMTP_PASS en las variables de entorno')
+  }
+
   if (!transporter) {
     transporter = nodemailer.createTransport({
       host: process.env.SMTP_HOST || 'smtp.gmail.com',
       port: Number(process.env.SMTP_PORT) || 587,
-      secure: process.env.SMTP_SECURE === 'true', // true si usas puerto 465 (SSL), false para 587 (STARTTLS)
+      secure: process.env.SMTP_SECURE === 'true',
       auth: {
-        user: process.env.SMTP_USER!,
-        pass: process.env.SMTP_PASS!, // tu clave de aplicación de 16 dígitos
+        user: process.env.SMTP_USER,
+        pass: process.env.SMTP_PASS,
       },
     })
   }
@@ -44,7 +48,7 @@ export async function sendPasswordResetEmail(email: string, token: string) {
             <td style="padding: 32px 24px;">
               <h2 style="margin: 0 0 16px 0; color: #ffffff; font-size: 20px; font-weight: 700;">Recupera tu contraseña</h2>
               <p style="margin: 0 0 24px 0; color: #a3a3a3; font-size: 14px; line-height: 1.6;">
-                Recibimos una solicitud para restablecer la contraseña de tu cuenta de administrador en Carta Menú.
+                Recibimos una solicitud para restablecer la contraseña de tu cuenta en Carta Menú.
               </p>
               <table role="presentation" width="100%" style="border-collapse: collapse;">
                 <tr>
@@ -56,7 +60,7 @@ export async function sendPasswordResetEmail(email: string, token: string) {
                 </tr>
               </table>
               <p style="margin: 24px 0 0 0; color: #a3a3a3; font-size: 12px; line-height: 1.6;">
-                Este enlace expira en 1 hora. Si no solicitaste este cambio, puedes ignorar este mensaje de forma segura.
+                Este enlace expira en 1 hora. Si no solicitaste este cambio, podés ignorar este mensaje de forma segura.
               </p>
             </td>
           </tr>
@@ -152,7 +156,7 @@ export async function sendEmailVerificationEmail(email: string, token: string) {
             <td style="padding: 32px 24px;">
               <h2 style="margin: 0 0 16px 0; color: #ffffff; font-size: 20px; font-weight: 700;">Confirma tu correo electrónico</h2>
               <p style="margin: 0 0 24px 0; color: #a3a3a3; font-size: 14px; line-height: 1.6;">
-                Casi estás listo. Para activar tu cuenta de administrador en Carta Menú, confirma tu dirección de correo haciendo clic en el botón de abajo:
+                Casi estás listo. Para activar tu cuenta en Carta Menú, confirmá tu dirección de correo haciendo clic en el botón de abajo:
               </p>
               <table role="presentation" width="100%" style="border-collapse: collapse;">
                 <tr>
@@ -164,7 +168,7 @@ export async function sendEmailVerificationEmail(email: string, token: string) {
                 </tr>
               </table>
               <p style="margin: 24px 0 0 0; color: #a3a3a3; font-size: 12px; line-height: 1.6;">
-                Este enlace expira en 24 horas. Si no creaste esta cuenta, puedes ignorar este mensaje.
+                Este enlace expira en 24 horas. Si no creaste esta cuenta, podés ignorar este mensaje.
               </p>
             </td>
           </tr>

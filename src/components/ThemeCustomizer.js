@@ -1,9 +1,13 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { updateStoreSettings } from '@/app/admin/actions/settingsActions'
 
-export default function ThemeCustomizer({ initialSettings }) {
+export default function ThemeCustomizer({ initialSettings, restaurantId }) {
+  const router = useRouter()
+  const targetRestaurantId = restaurantId || initialSettings?.id
+
   const [isOpen, setIsOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState(null)
@@ -37,11 +41,15 @@ export default function ThemeCustomizer({ initialSettings }) {
       formData.append(key, value)
     })
 
-    const res = await updateStoreSettings(formData)
+    const res = await updateStoreSettings(formData, targetRestaurantId)
     setLoading(false)
 
     if (res.success) {
-      setMessage({ type: 'success', text: '¡Configuración de colores actualizada correctamente!' })
+      setMessage({
+        type: 'success',
+        text: '¡Configuración de colores actualizada correctamente!',
+      })
+      router.refresh()
     } else {
       setMessage({ type: 'error', text: res.error || 'Error al guardar.' })
     }
@@ -71,7 +79,10 @@ export default function ThemeCustomizer({ initialSettings }) {
       </button>
 
       {isOpen && (
-        <form onSubmit={handleSubmit} className="p-6 border-t border-neutral-800 space-y-8 bg-neutral-950/40">
+        <form
+          onSubmit={handleSubmit}
+          className="p-6 border-t border-neutral-800 space-y-8 bg-neutral-950/40"
+        >
           {message && (
             <div
               className={`p-3 rounded-lg text-xs font-bold ${
@@ -91,7 +102,9 @@ export default function ThemeCustomizer({ initialSettings }) {
             </h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-neutral-300">Color de Fondo General</label>
+                <label className="text-xs font-semibold text-neutral-300">
+                  Color de Fondo General
+                </label>
                 <div className="flex items-center gap-3">
                   <input
                     type="color"
@@ -111,7 +124,9 @@ export default function ThemeCustomizer({ initialSettings }) {
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-neutral-300">Color de Carta Menú y Categorías</label>
+                <label className="text-xs font-semibold text-neutral-300">
+                  Color de Carta Menú y Categorías
+                </label>
                 <div className="flex items-center gap-3">
                   <input
                     type="color"
@@ -139,7 +154,9 @@ export default function ThemeCustomizer({ initialSettings }) {
             </h3>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-neutral-300">Color Fondo</label>
+                <label className="text-xs font-semibold text-neutral-300">
+                  Color Fondo
+                </label>
                 <div className="flex items-center gap-3">
                   <input
                     type="color"
@@ -159,7 +176,9 @@ export default function ThemeCustomizer({ initialSettings }) {
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-neutral-300">Color Botones</label>
+                <label className="text-xs font-semibold text-neutral-300">
+                  Color Botones
+                </label>
                 <div className="flex items-center gap-3">
                   <input
                     type="color"
@@ -179,7 +198,9 @@ export default function ThemeCustomizer({ initialSettings }) {
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-neutral-300">Color Letras de Botones</label>
+                <label className="text-xs font-semibold text-neutral-300">
+                  Color Letras de Botones
+                </label>
                 <div className="flex items-center gap-3">
                   <input
                     type="color"
@@ -207,7 +228,9 @@ export default function ThemeCustomizer({ initialSettings }) {
             </h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-neutral-300">Fondo de Tarjeta</label>
+                <label className="text-xs font-semibold text-neutral-300">
+                  Fondo de Tarjeta
+                </label>
                 <div className="flex items-center gap-3">
                   <input
                     type="color"
@@ -227,7 +250,9 @@ export default function ThemeCustomizer({ initialSettings }) {
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-neutral-300">Titulo de Producto</label>
+                <label className="text-xs font-semibold text-neutral-300">
+                  Titulo de Producto
+                </label>
                 <div className="flex items-center gap-3">
                   <input
                     type="color"
@@ -247,7 +272,9 @@ export default function ThemeCustomizer({ initialSettings }) {
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-neutral-300">Descripcion de Producto</label>
+                <label className="text-xs font-semibold text-neutral-300">
+                  Descripcion de Producto
+                </label>
                 <div className="flex items-center gap-3">
                   <input
                     type="color"
@@ -267,7 +294,9 @@ export default function ThemeCustomizer({ initialSettings }) {
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-neutral-300">Precio</label>
+                <label className="text-xs font-semibold text-neutral-300">
+                  Precio
+                </label>
                 <div className="flex items-center gap-3">
                   <input
                     type="color"
@@ -287,7 +316,9 @@ export default function ThemeCustomizer({ initialSettings }) {
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-neutral-300">Botón + Agregar</label>
+                <label className="text-xs font-semibold text-neutral-300">
+                  Botón + Agregar
+                </label>
                 <div className="flex items-center gap-3">
                   <input
                     type="color"
@@ -307,7 +338,9 @@ export default function ThemeCustomizer({ initialSettings }) {
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-neutral-300">Texto Botón + Agregar</label>
+                <label className="text-xs font-semibold text-neutral-300">
+                  Texto Botón + Agregar
+                </label>
                 <div className="flex items-center gap-3">
                   <input
                     type="color"

@@ -3,7 +3,9 @@
 import Link from 'next/link'
 import { logoutAction } from '@/app/admin/actions/authActions'
 
-export default function AdminHeader({ userEmail }) {
+export default function AdminHeader({ userEmail, restaurantSlug }) {
+  const publicMenuHref = restaurantSlug ? `/${restaurantSlug}` : '/'
+
   return (
     <header className="bg-neutral-900 border-b border-neutral-800 sticky top-0 z-50 backdrop-blur-md bg-neutral-900/90">
       <div className="max-w-6xl mx-auto px-6 py-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -19,7 +21,7 @@ export default function AdminHeader({ userEmail }) {
 
         <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
           <Link
-            href="/"
+            href={publicMenuHref}
             target="_blank"
             className="px-3.5 py-2 bg-neutral-800 hover:bg-neutral-700 text-neutral-200 text-xs font-semibold rounded-lg transition border border-neutral-700 flex items-center gap-1.5"
           >

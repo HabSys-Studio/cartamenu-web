@@ -39,6 +39,7 @@ export default function RegisterPage() {
     error: null,
     success: false,
     emailWarnings: null,
+    formValues: null,
   })
 
   return (
@@ -49,7 +50,7 @@ export default function RegisterPage() {
             Crear tu Cuenta
           </h1>
           <p className="text-xs text-neutral-400">
-            Regístrate en Carta Menú. El administrador de la plataforma te asignará tu restaurante.
+            Registrate en Carta Menú. El administrador de la plataforma te asignará tu restaurante.
           </p>
         </div>
 
@@ -125,7 +126,7 @@ export default function RegisterPage() {
                 : 'bg-amber-500 hover:bg-amber-400 text-neutral-950'
             }`}
           >
-            {isPending ? 'Creando cuenta...' : 'Crear Restaurante y Cuenta'}
+            {isPending ? 'Creando cuenta...' : 'Crear Cuenta'}
           </button>
         </form>
 
@@ -160,7 +161,7 @@ export default function RegisterPage() {
 
         <div className="mt-6 text-center">
           <p className="text-xs text-neutral-500">
-            ¿Ya tienes cuenta?{' '}
+            ¿Ya tenés cuenta?{' '}
             <Link
               href="/login"
               className="text-amber-400 hover:text-amber-300 font-semibold"

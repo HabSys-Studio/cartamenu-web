@@ -16,8 +16,7 @@ export default async function AdminDashboardPage() {
     redirect('/login')
   }
 
-  // Si es administrador de plataforma, mostrar listado de todos los restaurantes
-  if (userRole === 'ADMIN') {
+  if (userRole === 'ADMIN' || userRole === 'SUPERADMIN') {
     const allRestaurants = await listAllRestaurants()
     return (
       <div className="min-h-screen bg-neutral-950 text-neutral-100 p-6 sm:p-10">
@@ -28,7 +27,7 @@ export default async function AdminDashboardPage() {
                 Administración de Plataforma
               </h1>
               <p className="text-xs text-neutral-400">
-                Gestiona todos los restaurantes de Carta Menú
+                Gestioná todos los restaurantes de Carta Menú
               </p>
             </div>
             <Link
@@ -85,7 +84,6 @@ export default async function AdminDashboardPage() {
     )
   }
 
-  // Obtener los restaurantes del usuario (rol USER)
   const userRestaurants = await getUserRestaurants(userId)
 
   if (userRestaurants.length === 0) {
@@ -96,34 +94,29 @@ export default async function AdminDashboardPage() {
             Sin restaurantes asignados
           </h1>
           <p className="text-neutral-400 mb-6">
-            No tienes ningún restaurante asignado. Contacta al administrador de la plataforma.
+            No tenés ningún restaurante asignado. Contactá al administrador de la plataforma.
           </p>
           <Link
             href="/login"
             className="bg-amber-500 hover:bg-amber-400 text-neutral-950 font-bold py-2.5 rounded-lg transition block"
           >
-            Cerrar sesión
+            Ir a iniciar sesión
           </Link>
         </div>
       </div>
     )
   }
 
-  // Si hay solo un restaurante, ir directo al panel de ese restaurante
   if (userRestaurants.length === 1) {
     const restaurant = userRestaurants[0]
     return (
-      <div className="min-h-screen bg-neutral-950 text-neutral-100 p-6 sm:p-10">
-        <RestaurantAdminPanel
-          userId={userId}
-          restaurant={restaurant}
-          userRestaurants={userRestaurants}
-        />
-      </div>
+      <RestaurantAdminPanel
+        restaurant={restaurant}
+        userRestaurants={userRestaurants}
+      />
     )
   }
 
-  // Si hay varios restaurantes, mostrar selector
   return (
     <div className="min-h-screen bg-neutral-950 flex items-center justify-center p-4">
       <div className="w-full max-w-md bg-neutral-900 border border-neutral-800 rounded-2xl p-8 shadow-2xl text-center">
@@ -131,23 +124,21 @@ export default async function AdminDashboardPage() {
           Seleccionar Restaurante
         </h1>
         <p className="text-neutral-400 mb-6">
-          Elige qué restaurante deseas administrar:
+          Elegí qué restaurante deseás administrar:
         </p>
 
         <div className="space-y-3 mb-8">
           {userRestaurants.map((r) => (
-            <button
+            <Link
               key={r.id}
-              onClick={() => {
-                window.location.href = `/admin/manage/${r.id}`
-              }}
-              className="w-full py-3 rounded-xl text-sm font-bold transition border bg-amber-500 hover:bg-amber-400 text-neutral-950 border-amber-500"
+              href={`/admin/manage/${r.id}`}
+              className="block w-full py-3 px-4 rounded-xl text-sm font-bold transition border bg-amber-500 hover:bg-amber-400 text-neutral-950 border-amber-500"
             >
               {r.name} {r.role === 'OWNER' && '👑'}
-              <span className="text-xs text-neutral-500 ml-2">
+              <span className="text-xs text-neutral-800 ml-2">
                 {r.productCount} productos • {r.categoryCount} categorías
               </span>
-            </button>
+            </Link>
           ))}
         </div>
 
@@ -155,19 +146,17 @@ export default async function AdminDashboardPage() {
           href="/login"
           className="text-xs text-neutral-500 hover:text-neutral-300 underline"
         >
-          Cerrar sesión
+          Volver al inicio de sesión
         </Link>
       </div>
     </div>
   )
 }
 
-function RestaurantAdminPanel({ userId, restaurant, userRestaurants }) {
+function RestaurantAdminPanel({ restaurant, userRestaurants }) {
   return (
     <div className="min-h-screen bg-neutral-950 text-neutral-100 p-6 sm:p-10">
       <div className="max-w-6xl mx-auto space-y-8">
-
-        {/* Encabezado Principal con selector de restaurante */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-neutral-800 pb-6">
           <div>
             <h1 className="text-3xl font-black text-amber-500 tracking-tight">
@@ -178,27 +167,20 @@ function RestaurantAdminPanel({ userId, restaurant, userRestaurants }) {
             </p>
           </div>
 
-          {/* Selector de restaurante (si hay varios) */}
           {userRestaurants.length > 1 && (
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-neutral-400">Cambiar restaurante:</span>
-              <select
-                defaultValue={restaurant.id}
-                onChange={(e) => {
-                  window.location.href = `/admin/manage/${e.target.value}`
-                }}
-                className="bg-neutral-950 border border-neutral-700 rounded-xl px-3 py-2 text-sm text-neutral-100 outline-none"
-              >
-                {userRestaurants.map((r) => (
-                  <option key={r.id} value={r.id}>
-                    {r.name} {r.role === 'OWNER' && '👑'}
-                  </option>
-                ))}
-              </select>
+            <div className="flex flex-wrap items-center gap-2">
+              {userRestaurants.map((r) => (
+                <Link
+                  key={r.id}
+                  href={`/admin/manage/${r.id}`}
+                  className="text-xs font-bold px-3 py-2 rounded-xl bg-neutral-900 border border-neutral-800 hover:border-amber-500 text-neutral-200 transition"
+                >
+                  {r.name} {r.role === 'OWNER' && '👑'}
+                </Link>
+              ))}
             </div>
           )}
 
-          {/* Acciones Rápidas */}
           <div className="flex items-center gap-3">
             <Link
               href="/admin/new-product"
@@ -216,7 +198,6 @@ function RestaurantAdminPanel({ userId, restaurant, userRestaurants }) {
           </div>
         </div>
 
-        {/* Métricas Rápidas */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-4">
             <p className="text-xs text-neutral-400 font-semibold">Total de Productos</p>
@@ -227,27 +208,30 @@ function RestaurantAdminPanel({ userId, restaurant, userRestaurants }) {
             <p className="text-2xl font-black text-neutral-100 mt-1">{restaurant.categoryCount}</p>
           </div>
           <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-4">
-            <p className="text-xs text-neutral-400 font-semibold">Productos Agotados</p>
-            <p className="text-2xl font-black text-rose-500 mt-1">-</p>
+            <p className="text-xs text-neutral-400 font-semibold">Gestionar Local</p>
+            <Link
+              href={`/admin/manage/${restaurant.id}`}
+              className="inline-block text-sm font-bold text-amber-400 hover:text-amber-300 underline mt-2"
+            >
+              Abrir gestión completa →
+            </Link>
           </div>
         </div>
 
-        {/* Contenido del panel */}
         <div className="space-y-8">
           <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-6">
-            <h2 className="text-xl font-bold mb-4 text-neutral-100">Gestión de Categorías</h2>
+            <h2 className="text-xl font-bold mb-2 text-neutral-100">Gestión de Categorías</h2>
             <p className="text-neutral-400 text-sm">
-              Próximamente: gestión de categorías para {restaurant.name}
+              Administrá las categorías de {restaurant.name} desde la vista de gestión del local.
             </p>
           </div>
           <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-6">
-            <h2 className="text-xl font-bold mb-4 text-neutral-100">Gestión de Productos</h2>
+            <h2 className="text-xl font-bold mb-2 text-neutral-100">Gestión de Productos</h2>
             <p className="text-neutral-400 text-sm">
-              Próximamente: gestión de productos para {restaurant.name}
+              Administrá los productos y disponibilidad de {restaurant.name} desde la vista de gestión del local.
             </p>
           </div>
         </div>
-
       </div>
     </div>
   )

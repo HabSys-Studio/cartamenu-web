@@ -1,31 +1,28 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useTransition } from 'react'
 import Link from 'next/link'
 import { loginAction } from './actions'
 
 export default function LoginPage() {
   const [error, setError] = useState('')
-  const [isPending, setIsPending] = useState(false)
+  const [isPending, startTransition] = useTransition()
 
-  const handleSubmit = async (event) => {
+  const handleSubmit = (event) => {
     event.preventDefault()
     setError('')
     const formData = new FormData(event.currentTarget)
 
     startTransition(async () => {
-      // Llamar al server action
       const result = await loginAction(formData)
 
-      // Si hay error, mostrar mensaje
       if (result?.error) {
         setError(result.error)
+        return
       }
-      // Si success, esperar un instante y redirigir
+
       if (result?.success) {
-        setTimeout(() => {
-          window.location.href = '/admin'
-        }, 100)
+        window.location.assign('/admin')
       }
     })
   }
@@ -51,7 +48,7 @@ export default function LoginPage() {
           </div>
         )}
 
-        <form action={loginAction} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-xs font-bold text-neutral-300 mb-1.5 uppercase tracking-wider">
               Correo Electrónico
@@ -89,12 +86,12 @@ export default function LoginPage() {
 
         <div className="mt-8 pt-6 border-t border-neutral-800">
           <p className="text-xs text-neutral-500 text-center mb-4">
-            ¿No tienes cuenta?{' '}
+            ¿No tenés cuenta?{' '}
             <Link
               href="/register"
               className="text-amber-400 hover:text-amber-300 font-semibold"
             >
-              Regístrate gratis
+              Registrate gratis
             </Link>
           </p>
           <p className="text-xs text-neutral-500 text-center">
@@ -103,7 +100,7 @@ export default function LoginPage() {
               href="/forgot-password"
               className="text-amber-400 hover:text-amber-300 font-semibold"
             >
-              Recuperarla aquí
+              Recuperala acá
             </Link>
           </p>
         </div>

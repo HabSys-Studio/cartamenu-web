@@ -1,10 +1,12 @@
 'use client'
 
-import { useState } from 'react'
+import { use, useState } from 'react'
 import Link from 'next/link'
 
 export default function ResetPasswordPage({ params }) {
-  const { token } = params
+  const resolvedParams = use(params)
+  const token = resolvedParams?.token ?? ''
+
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [loading, setLoading] = useState(false)
@@ -14,7 +16,13 @@ export default function ResetPasswordPage({ params }) {
   const handleSubmit = async (e) => {
     e.preventDefault()
     setMessage('')
-    
+
+    if (!token) {
+      setMessage('El enlace de restablecimiento no es válido.')
+      setMessageType('error')
+      return
+    }
+
     if (password !== confirmPassword) {
       setMessage('Las contraseñas no coinciden.')
       setMessageType('error')
@@ -46,9 +54,9 @@ export default function ResetPasswordPage({ params }) {
         setMessageType('error')
         setMessage(data.error || 'Error al restablecer la contraseña.')
       }
-    } catch (error) {
+    } catch {
       setMessageType('error')
-      setMessage('Error de conexión. Intenta de nuevo.')
+      setMessage('Error de conexión. Intentá de nuevo.')
     } finally {
       setLoading(false)
     }
@@ -65,16 +73,18 @@ export default function ResetPasswordPage({ params }) {
             Cambiar contraseña
           </h1>
           <p className="text-xs text-neutral-400">
-            Ingresa tu nueva contraseña
+            Ingresá tu nueva contraseña
           </p>
         </div>
 
         {message && (
-          <div className={`mb-4 p-3 rounded-xl text-xs font-medium ${
-            messageType === 'success'
-              ? 'bg-green-950/50 border border-green-800/80 text-green-300'
-              : 'bg-rose-950/50 border border-rose-800/80 text-rose-300'
-          }`}>
+          <div
+            className={`mb-4 p-3 rounded-xl text-xs font-medium ${
+              messageType === 'success'
+                ? 'bg-emerald-950/50 border border-emerald-800/80 text-emerald-300'
+                : 'bg-rose-950/50 border border-rose-800/80 text-rose-300'
+            }`}
+          >
             {message}
           </div>
         )}
@@ -122,7 +132,7 @@ export default function ResetPasswordPage({ params }) {
         <div className="mt-6 text-center">
           <Link
             href="/login"
-            className="text-amber-400 hover:text-amber-300 font-semibold"
+            className="text-amber-400 hover:text-amber-300 font-semibold text-sm"
           >
             Volver al inicio de sesión
           </Link>

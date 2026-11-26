@@ -1,80 +1,140 @@
+import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { auth } from '@/auth'
+import {
+  requireRestaurantAccess,
+  handleApiAuthError,
+} from '@/lib/restaurant-access'
 
 export const dynamic = 'force-dynamic'
 
-export async function GET() {
-  const session = await auth()
+export async function GET(request) {
+  try {
+    const { searchParams } = new URL(request.url)
+    const requestedRestaurantId = searchParams.get('restaurantId')
 
-  if (!session?.user) {
-    return Response.json({ error: 'No autorizado' }, { status: 401 })
-  }
+    // Primero verificamos sesión; si no pasa restaurantId por query, tomamos activeRestaurantId del token
+    const { auth } = await import('@/auth')
+    const session = await auth()
 
-  const restaurantId = session.user.restaurantId
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+    }
 
-  // Obtener el restaurante del usuario y su admin
-  const restaurant = await prisma.restaurant.findUnique({
-    where: { id: restaurantId },
-    include: {
-      admins: {
-        select: {
-          id: true,
-          email: true,
-          emailVerified: true,
+    const targetRestaurantId =
+      requestedRestaurantId || session.user.activeRestaurantId
+
+    if (!targetRestaurantId) {
+      return NextResponse.json(
+        { error: 'No hay un restaurante activo seleccionado.' },
+        { status: 400 }
+      )
+    }
+
+    const { restaurant, membershipRole } = await requireRestaurantAccess(
+      targetRestaurantId,
+      'STAFF'
+    )
+
+    const restaurantMembers = await prisma.userRestaurant.findMany({
+      where: { restaurantId: restaurant.id },
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            emailVerified: true,
+            role: true,
+          },
         },
       },
-      _count: {
-        select: {
-          admins: true,
-          products: true,
-          categories: true,
+      orderBy: { createdAt: 'asc' },
+    })
+
+    const counts = await prisma.restaurant.findUnique({
+      where: { id: restaurant.id },
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        isActive: true,
+        _count: {
+          select: {
+            users: true,
+            products: true,
+            categories: true,
+            orders: true,
+          },
         },
       },
-    },
-  })
+    })
 
-  if (!restaurant) {
-    return Response.json({ error: 'Restaurante no encontrado' }, { status: 404 })
-  }
+    // Si es SUPERADMIN o OWNER, puede ver el panorama general de restaurantes;
+    // para ADMIN o STAFF devolvemos solo los miembros de su restaurante
+    const isPrivileged =
+      session.user.role === 'SUPERADMIN' || membershipRole === 'OWNER'
 
-  // Obtener todos los restaurantes y sus admins (para visibilidad completa del ecosistema)
-  const allRestaurants = await prisma.restaurant.findMany({
-    include: {
-      admins: {
-        select: {
-          id: true,
-          email: true,
-          emailVerified: true,
-        },
-      },
-      _count: {
-        select: {
-          admins: true,
-        },
-      },
-    },
-    orderBy: { createdAt: 'desc' },
-  })
+    let allRestaurants = []
+    let allUsers = []
 
-  // Obtener todos los admins con su restaurante (para ver qué mail está ligado a qué local)
-  const allAdmins = await prisma.adminUser.findMany({
-    include: {
-      restaurant: {
+    if (isPrivileged) {
+      allRestaurants = await prisma.restaurant.findMany({
         select: {
           id: true,
           name: true,
           slug: true,
+          isActive: true,
+          createdAt: true,
+          _count: {
+            select: {
+              users: true,
+              products: true,
+              categories: true,
+            },
+          },
         },
-      },
-    },
-    orderBy: { email: 'asc' },
-  })
+        orderBy: { createdAt: 'desc' },
+      })
 
-  return Response.json({
-    current: {
-      restaurant,
-    },
-    allRestaurants,
-    allAdmins,
-  })
+      allUsers = await prisma.user.findMany({
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          emailVerified: true,
+          role: true,
+          restaurants: {
+            select: {
+              role: true,
+              restaurant: {
+                select: {
+                  id: true,
+                  name: true,
+                  slug: true,
+                },
+              },
+            },
+          },
+        },
+        orderBy: { email: 'asc' },
+      })
+    }
+
+    return NextResponse.json({
+      current: {
+        restaurant: counts,
+        membershipRole,
+        members: restaurantMembers.map((m) => ({
+          membershipId: m.id,
+          role: m.role,
+          createdAt: m.createdAt,
+          user: m.user,
+        })),
+      },
+      allRestaurants,
+      allUsers,
+    })
+  } catch (error) {
+    return handleApiAuthError(error)
+  }
 }

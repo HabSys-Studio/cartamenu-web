@@ -84,6 +84,8 @@ export async function getRestaurantBySlug(slug) {
  * Verifica que un usuario tenga acceso a un restaurante
  */
 export async function getUserRestaurantAccess(userId, restaurantId) {
+  if (!userId || !restaurantId) return null
+
   const userRestaurant = await prisma.userRestaurant.findFirst({
     where: { userId, restaurantId },
     include: {
@@ -118,11 +120,12 @@ export async function getUserRestaurantAccess(userId, restaurantId) {
  * Obtiene el restaurante activo desde la sesión (para admin)
  */
 export async function getActiveRestaurant(userId, restaurantId) {
+  if (!userId) return null
+
   if (!restaurantId) {
-    // Si no se especifica, devolver el primero disponible
     const restaurants = await getUserRestaurants(userId)
     if (restaurants.length > 0) {
-      return restaurants[0]
+      return getUserRestaurantAccess(userId, restaurants[0].id)
     }
     return null
   }
@@ -131,7 +134,7 @@ export async function getActiveRestaurant(userId, restaurantId) {
 }
 
 export async function getOwnedCategory(restaurantId, categoryId) {
-  if (!categoryId) return null
+  if (!restaurantId || !categoryId) return null
 
   return prisma.category.findFirst({
     where: { id: categoryId, restaurantId },
@@ -139,7 +142,7 @@ export async function getOwnedCategory(restaurantId, categoryId) {
 }
 
 export async function getOwnedProduct(restaurantId, productId) {
-  if (!productId) return null
+  if (!restaurantId || !productId) return null
 
   return prisma.product.findFirst({
     where: { id: productId, restaurantId },
@@ -161,9 +164,10 @@ export async function createRestaurantForUser(userId, data) {
     throw new Error('Usuario no encontrado')
   }
 
-  // Verificar límite de restaurantes según plan
   if (user.restaurants.length >= user.maxRestaurants) {
-    throw new Error(`Has alcanzado el límite de ${user.maxRestaurants} restaurante(s) para tu plan ${user.plan}.`)
+    throw new Error(
+      `Has alcanzado el límite de ${user.maxRestaurants} restaurante(s) para tu plan ${user.plan}.`
+    )
   }
 
   return prisma.$transaction(async (tx) => {

@@ -18,9 +18,13 @@ export async function uploadImageAction(formData, restaurantId) {
       throw new Error('No hay sesión de administrador activa.')
     }
 
+    if (!restaurantId) {
+      throw new Error('No se ha especificado un restaurante.')
+    }
+
     const file = formData.get('file')
 
-    if (!file || file.size === 0) {
+    if (!file || typeof file === 'string' || file.size === 0) {
       throw new Error('No se ha proporcionado ningún archivo válido.')
     }
 
@@ -54,16 +58,26 @@ export async function uploadImageAction(formData, restaurantId) {
     const buffer = Buffer.from(arrayBuffer)
 
     const result = await new Promise((resolve, reject) => {
-      cloudinary.uploader.upload_stream(
-        {
-          folder: `carta-menu/${restaurant.slug}`,
-          transformation: [{ width: 800, height: 800, crop: 'limit', quality: 'auto', fetch_format: 'auto' }]
-        },
-        (error, result) => {
-          if (error) reject(error)
-          else resolve(result)
-        }
-      ).end(buffer)
+      cloudinary.uploader
+        .upload_stream(
+          {
+            folder: `carta-menu/${restaurant.slug}`,
+            transformation: [
+              {
+                width: 800,
+                height: 800,
+                crop: 'limit',
+                quality: 'auto',
+                fetch_format: 'auto',
+              },
+            ],
+          },
+          (error, uploadResult) => {
+            if (error) reject(error)
+            else resolve(uploadResult)
+          }
+        )
+        .end(buffer)
     })
 
     return { success: true, url: result.secure_url }

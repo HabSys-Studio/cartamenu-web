@@ -1,5 +1,4 @@
 import Link from 'next/link'
-import { prisma } from '@/lib/prisma'
 import ProductCatalog from '@/components/ProductCatalog'
 import CartDrawer from '@/components/CartDrawer'
 import AutoRefresh from '@/components/AutoRefresh'
@@ -8,7 +7,8 @@ import { getRestaurantBySlug } from '@/lib/restaurant'
 export const revalidate = 60
 
 export default async function RestaurantMenuPage({ params }) {
-  const { slug } = params
+  const resolvedParams = await params
+  const slug = resolvedParams?.slug
 
   const restaurant = await getRestaurantBySlug(slug)
 
@@ -17,7 +17,7 @@ export default async function RestaurantMenuPage({ params }) {
       <div className="min-h-screen bg-neutral-950 flex items-center justify-center p-4">
         <div className="text-center">
           <h1 className="text-2xl font-bold text-neutral-300">Restaurante no encontrado</h1>
-          <p className="text-neutral-500 mt-2">El menú que buscas no existe.</p>
+          <p className="text-neutral-500 mt-2">El menú que buscás no existe.</p>
           <Link
             href="/"
             className="text-amber-500 hover:text-amber-400 font-semibold mt-4 inline-block"
@@ -48,7 +48,10 @@ export default async function RestaurantMenuPage({ params }) {
       >
         <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-black tracking-tight" style={{ color: restaurant.menuTitleColor || '#f59e0b' }}>
+            <h1
+              className="text-2xl font-black tracking-tight"
+              style={{ color: restaurant.menuTitleColor || '#f59e0b' }}
+            >
               {restaurant.name}
             </h1>
             <p className="text-xs text-neutral-400">

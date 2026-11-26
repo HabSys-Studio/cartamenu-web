@@ -1,35 +1,29 @@
 'use server'
 
-import { prisma } from '@/lib/prisma'
-import bcrypt from 'bcryptjs'
-import { cookies } from 'next/headers'
+import { AuthError } from 'next-auth'
+import { signIn } from '@/auth'
 
 export async function loginAction(formData) {
-  const email = formData.get('email')
-  const password = formData.get('password')
+  try {
+    const email = String(formData.get('email') || '').trim().toLowerCase()
+    const password = String(formData.get('password') || '')
 
-  if (!email || !password) {
-    return { error: 'Todos los campos son requeridos.' }
+    if (!email || !password) {
+      return { error: 'Todos los campos son requeridos.' }
+    }
+
+    await signIn('credentials', {
+      email,
+      password,
+      redirect: false,
+    })
+
+    return { success: true }
+  } catch (err) {
+    if (err instanceof AuthError) {
+      return { error: 'Credenciales inválidas.' }
+    }
+    console.error('Error en loginAction:', err)
+    return { error: 'Ocurrió un error al iniciar sesión.' }
   }
-
-  const user = await prisma.user.findUnique({
-    where: { email: String(email) },
-    include: {
-      restaurants: {
-        include: { restaurant: true },
-      },
-    },
-  })
-
-  if (!user) {
-    return { error: 'Credenciales inválidas.' }
-  }
-
-  const isValid = await bcrypt.compare(String(password), user.password)
-  if (!isValid) {
-    return { error: 'Credenciales inválidas.' }
-  }
-
-  // Retornar success para que el cliente maneje el redirect
-  return { success: true }
 }

@@ -1,175 +1,183 @@
-'use client';
+'use client'
 
-import { useState, useEffect } from 'react';
-import Image from 'next/image';
+import { useState, useEffect } from 'react'
+import Image from 'next/image'
+import { useCartStore } from '@/store/useCartStore'
 
+const PIN_MOZO = '123456'
 
-// PIN general predeterminado para el personal de salón (6 dígitos)
-const PIN_MOZO = "123456"; 
+export default function MenuClient({
+  platos = [],
+  categorias = [],
+  restaurantId = null,
+}) {
+  const [categoriaSeleccionada, setCategoriaSeleccionada] = useState('todas')
+  const [busqueda, setBusqueda] = useState('')
+  const [carrito, setCarrito] = useState([])
+  const [esModoMozo, setEsModoMozo] = useState(false)
+  const [numeroMesa, setNumeroMesa] = useState('')
+  const [carritoAbierto, setCarritoAbierto] = useState(false)
+  const [checkoutStep, setCheckoutStep] = useState('carrito') // 'carrito' | 'datos' | 'exito'
+  const [clienteNombre, setClienteNombre] = useState('')
+  const [numeroMesaPedido, setNumeroMesaPedido] = useState('')
+  const [restaurantIdProp] = useState(restaurantId || null)
 
-export default function MenuClient({ platos = [], categorias = [], restaurantId = null }) {
-  const [categoriaSeleccionada, setCategoriaSeleccionada] = useState('todas');
-  const [busqueda, setBusqueda] = useState('');
-  const [carrito, setCarrito] = useState([]);
-  const [esModoMozo, setEsModoMozo] = useState(false);
-  const [numeroMesa, setNumeroMesa] = useState('');
-  const [carritoAbierto, setCarritoAbierto] = useState(false);
-  const [checkoutStep, setCheckoutStep] = useState('carrito'); // 'carrito' | 'datos' | 'exito'
-  const [clienteNombre, setClienteNombre] = useState('');
-  const [numeroMesaPedido, setNumeroMesaPedido] = useState('');
-  const [restaurantIdProp, setRestaurantIdProp] = useState<string | null>(null);
+  const [mostrarModalPin, setMostrarModalPin] = useState(false)
+  const [pinIngresado, setPinIngresado] = useState('')
+  const [errorPin, setErrorPin] = useState(false)
 
-  // Estados para el Modal de Contraseña
-  const [mostrarModalPin, setMostrarModalPin] = useState(false);
-  const [pinIngresado, setPinIngresado] = useState('');
-  const [errorPin, setErrorPin] = useState(false);
+  const clearZustandCart = useCartStore((state) => state.clearCart)
 
   useEffect(() => {
-    const carritoGuardado = localStorage.getItem('carta_carrito');
+    const carritoGuardado = localStorage.getItem('carta_carrito')
     if (carritoGuardado) {
       try {
-        setCarrito(JSON.parse(carritoGuardado));
+        setCarrito(JSON.parse(carritoGuardado))
       } catch (e) {
-        console.error('Error al cargar el carrito:', e);
+        console.error('Error al cargar el carrito:', e)
       }
     }
-  }, []);
+  }, [])
 
   useEffect(() => {
-    localStorage.setItem('carta_carrito', JSON.stringify(carrito));
-  }, [carrito]);
+    localStorage.setItem('carta_carrito', JSON.stringify(carrito))
+  }, [carrito])
 
   const alternarModoMozo = () => {
     if (esModoMozo) {
-      setEsModoMozo(false);
+      setEsModoMozo(false)
     } else {
-      setMostrarModalPin(true);
-      setErrorPin(false);
-      setPinIngresado('');
+      setMostrarModalPin(true)
+      setErrorPin(false)
+      setPinIngresado('')
     }
-  };
+  }
 
   const validarPin = (e) => {
-    e.preventDefault();
+    e.preventDefault()
     if (pinIngresado === PIN_MOZO) {
-      setEsModoMozo(true);
-      setMostrarModalPin(false);
-      setErrorPin(false);
+      setEsModoMozo(true)
+      setMostrarModalPin(false)
+      setErrorPin(false)
     } else {
-      setErrorPin(true);
+      setErrorPin(true)
     }
-  };
+  }
 
   const platosFiltrados = platos.filter((plato) => {
+    const catId = plato.categoryId || plato.categoria?.id || plato.categoria?._id
     const coincideCategoria =
-      categoriaSeleccionada === 'todas' ||
-      plato.categoria?._id === categoriaSeleccionada;
+      categoriaSeleccionada === 'todas' || catId === categoriaSeleccionada
+
+    const nombrePlato = (plato.name || plato.title || '').toLowerCase()
+    const descPlato = (plato.description || '').toLowerCase()
+    const query = busqueda.toLowerCase()
 
     const coincideBusqueda =
-      plato.title.toLowerCase().includes(busqueda.toLowerCase()) ||
-      (plato.description &&
-        plato.description.toLowerCase().includes(busqueda.toLowerCase()));
+      nombrePlato.includes(query) || descPlato.includes(query)
 
-    return coincideCategoria && coincideBusqueda;
-  });
+    return coincideCategoria && coincideBusqueda
+  })
 
   const agregarAlCarrito = (plato) => {
+    const itemId = plato.id || plato._id
     setCarrito((prev) => {
-      const existe = prev.find((item) => item._id === plato._id);
+      const existe = prev.find((item) => (item.id || item._id) === itemId)
       if (existe) {
         return prev.map((item) =>
-          item._id === plato._id
+          (item.id || item._id) === itemId
             ? { ...item, cantidad: item.cantidad + 1 }
             : item
-        );
+        )
       }
-      return [...prev, { ...plato, cantidad: 1, notas: '' }];
-    });
-  };
+      return [...prev, { ...plato, id: itemId, cantidad: 1, notas: '' }]
+    })
+  }
 
   const modificarCantidad = (id, cambio) => {
     setCarrito((prev) =>
       prev
         .map((item) => {
-          if (item._id === id) {
-            const nuevaCantidad = item.cantidad + cambio;
+          const itemId = item.id || item._id
+          if (itemId === id) {
+            const nuevaCantidad = item.cantidad + cambio
             return nuevaCantidad > 0
               ? { ...item, cantidad: nuevaCantidad }
-              : null;
+              : null
           }
-          return item;
+          return item
         })
         .filter(Boolean)
-    );
-  };
+    )
+  }
 
   const actualizarNotasItem = (id, notas) => {
     setCarrito((prev) =>
-      prev.map((item) => (item._id === id ? { ...item, notas } : item))
-    );
-  };
+      prev.map((item) =>
+        (item.id || item._id) === id ? { ...item, notas } : item
+      )
+    )
+  }
 
-  const handleCheckout = async () => {
+  const handleCheckout = () => {
     if (!restaurantIdProp && !restaurantId) {
-      alert('Error: no se identificó el restaurante.');
-      return;
+      alert('Error: no se identificó el restaurante.')
+      return
     }
+    setCheckoutStep('datos')
+  }
 
-    setCheckoutStep('datos');
-  };
+  const totalPedido = carrito.reduce(
+    (acc, item) => acc + (Number(item.price) || 0) * item.cantidad,
+    0
+  )
+  const totalItems = carrito.reduce((acc, item) => acc + item.cantidad, 0)
 
   const confirmarPedido = async () => {
     if (!clienteNombre.trim()) {
-      alert('Por favor ingresa tu nombre.');
-      return;
+      alert('Por favor ingresá tu nombre.')
+      return
     }
 
     const payload = {
       restaurantId: restaurantIdProp || restaurantId,
-      customerName: clienteNombre,
-      customerPhone: numeroMesaPedido || null,
+      customerName: clienteNombre.trim(),
+      customerPhone: numeroMesaPedido.trim() || numeroMesa.trim() || null,
       customerEmail: null,
       total: totalPedido,
       items: carrito.map((item) => ({
-        id: item.id,
+        id: item.id || item._id,
         quantity: item.cantidad,
-        price: item.price,
+        price: Number(item.price) || 0,
         notas: item.notas || '',
       })),
-    };
+    }
 
     try {
       const res = await fetch('/api/orders', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
-      });
+      })
 
-      const data = await res.json();
+      const data = await res.json()
 
       if (res.ok) {
-        setCheckoutStep('exito');
-        // Limpiar carrito via Zustand
-        const { clearCart } = await import('@/store/useCartStore');
-        clearCart();
+        setCheckoutStep('exito')
+        setCarrito([])
+        localStorage.removeItem('carta_carrito')
+        clearZustandCart()
       } else {
-        alert(data.error || 'Error al crear el pedido.');
+        alert(data.error || 'Error al crear el pedido.')
       }
     } catch (error) {
-      console.error(error);
-      alert('Error de conexión al crear el pedido.');
+      console.error(error)
+      alert('Error de conexión al crear el pedido.')
     }
-  };
-
-  const totalPedido = carrito.reduce(
-    (acc, item) => acc + item.price * item.cantidad,
-    0
-  );
-  const totalItems = carrito.reduce((acc, item) => acc + item.cantidad, 0);
+  }
 
   return (
     <div className="relative pb-24">
-      {/* Controles Superiores */}
       <div className="mb-6 flex flex-col sm:flex-row gap-4 items-center justify-between">
         <div className="relative w-full sm:w-80">
           <input
@@ -189,12 +197,13 @@ export default function MenuClient({ platos = [], categorias = [], restaurantId 
               strokeLinecap="round"
               strokeLinejoin="round"
               strokeWidth="2"
-              d="21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
             />
           </svg>
         </div>
 
         <button
+          type="button"
           onClick={alternarModoMozo}
           className={`px-4 py-2 rounded-full text-xs font-semibold tracking-wider uppercase border transition-all ${
             esModoMozo
@@ -202,13 +211,13 @@ export default function MenuClient({ platos = [], categorias = [], restaurantId 
               : 'bg-slate-900 text-slate-400 border-slate-800 hover:border-slate-700'
           }`}
         >
-          {esModoMozo ? ' Modo Mozo Activo' : ' Modo Cliente'}
+          {esModoMozo ? 'Modo Mozo Activo' : 'Modo Cliente'}
         </button>
       </div>
 
-      {/* Botones de Categorías */}
       <div className="flex flex-wrap justify-center gap-2 mb-8">
         <button
+          type="button"
           onClick={() => setCategoriaSeleccionada('todas')}
           className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
             categoriaSeleccionada === 'todas'
@@ -219,22 +228,26 @@ export default function MenuClient({ platos = [], categorias = [], restaurantId 
           Todas
         </button>
 
-        {categorias.map((cat) => (
-          <button
-            key={cat._id}
-            onClick={() => setCategoriaSeleccionada(cat._id)}
-            className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-              categoriaSeleccionada === cat._id
-                ? 'bg-amber-500 text-slate-950 font-semibold'
-                : 'bg-slate-900 text-slate-300 hover:bg-slate-800 border border-slate-800'
-            }`}
-          >
-            {cat.titulo}
-          </button>
-        ))}
+        {categorias.map((cat) => {
+          const catId = cat.id || cat._id
+          const catTitle = cat.name || cat.titulo
+          return (
+            <button
+              type="button"
+              key={catId}
+              onClick={() => setCategoriaSeleccionada(catId)}
+              className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+                categoriaSeleccionada === catId
+                  ? 'bg-amber-500 text-slate-950 font-semibold'
+                  : 'bg-slate-900 text-slate-300 hover:bg-slate-800 border border-slate-800'
+              }`}
+            >
+              {catTitle}
+            </button>
+          )
+        })}
       </div>
 
-      {/* Grid de Platos */}
       {platosFiltrados.length === 0 ? (
         <div className="text-center py-12 bg-slate-900/50 rounded-xl border border-slate-800">
           <p className="text-slate-400">
@@ -243,69 +256,79 @@ export default function MenuClient({ platos = [], categorias = [], restaurantId 
         </div>
       ) : (
         <section className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {platosFiltrados.map((plato) => (
-            <article
-              key={plato._id}
-              className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden shadow-lg flex flex-col justify-between"
-            >
-              <div>
-                {plato.image && (
-                  <div className="relative h-48 w-full bg-slate-800">
-                    <Image
-                      src={plato.imageUrl}
-                      alt={plato.title || 'Imagen del plato'}
-                      fill
-                      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                      className="object-cover"
-                    />
-                  </div>
-                )}
-                <div className="p-5">
-                  <div className="flex justify-between items-start mb-2">
-                    <h2 className="text-xl font-semibold text-slate-100">
-                      {plato.title}
-                    </h2>
-                    <span className="text-lg font-bold text-amber-400 ml-2">
-                      ${plato.price}
-                    </span>
-                  </div>
-                  {plato.categoria && (
-                    <span className="inline-block text-xs font-semibold uppercase tracking-wider text-amber-500/80 mb-2">
-                      {plato.categoria.titulo}
-                    </span>
+          {platosFiltrados.map((plato) => {
+            const platoId = plato.id || plato._id
+            const platoNombre = plato.name || plato.title
+            const imgSrc = plato.imageUrl || plato.image
+            const estaDisponible =
+              typeof plato.available === 'boolean'
+                ? plato.available
+                : Boolean(plato.isAvailable)
+
+            return (
+              <article
+                key={platoId}
+                className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden shadow-lg flex flex-col justify-between"
+              >
+                <div>
+                  {imgSrc && (
+                    <div className="relative h-48 w-full bg-slate-800">
+                      <Image
+                        src={imgSrc}
+                        alt={platoNombre || 'Imagen del plato'}
+                        fill
+                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                        className="object-cover"
+                      />
+                    </div>
                   )}
-                  <p className="text-slate-400 text-sm mb-4">
-                    {plato.description}
-                  </p>
+                  <div className="p-5">
+                    <div className="flex justify-between items-start mb-2">
+                      <h2 className="text-xl font-semibold text-slate-100">
+                        {platoNombre}
+                      </h2>
+                      <span className="text-lg font-bold text-amber-400 ml-2">
+                        ${plato.price}
+                      </span>
+                    </div>
+                    {plato.categoria && (
+                      <span className="inline-block text-xs font-semibold uppercase tracking-wider text-amber-500/80 mb-2">
+                        {plato.categoria.name || plato.categoria.titulo}
+                      </span>
+                    )}
+                    <p className="text-slate-400 text-sm mb-4">
+                      {plato.description}
+                    </p>
+                  </div>
                 </div>
-              </div>
 
-              <div className="p-5 pt-0 flex justify-between items-center">
-                <span
-                  className={`inline-block text-xs font-medium px-2.5 py-1 rounded-full ${
-                    plato.isAvailable
-                      ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-                      : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
-                  }`}
-                >
-                  {plato.isAvailable ? 'Disponible' : 'Agotado'}
-                </span>
-
-                {plato.isAvailable && (
-                  <button
-                    onClick={() => agregarAlCarrito(plato)}
-                    className="px-3.5 py-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-semibold rounded-lg text-sm transition-colors flex items-center gap-1.5"
+                <div className="p-5 pt-0 flex justify-between items-center">
+                  <span
+                    className={`inline-block text-xs font-medium px-2.5 py-1 rounded-full ${
+                      estaDisponible
+                        ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                        : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
+                    }`}
                   >
-                    + Agregar
-                  </button>
-                )}
-              </div>
-            </article>
-          ))}
+                    {estaDisponible ? 'Disponible' : 'Agotado'}
+                  </span>
+
+                  {estaDisponible && (
+                    <button
+                      type="button"
+                      onClick={() => agregarAlCarrito(plato)}
+                      className="px-3.5 py-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-semibold rounded-lg text-sm transition-colors flex items-center gap-1.5"
+                    >
+                      + Agregar
+                    </button>
+                  )}
+                </div>
+              </article>
+            )
+          })}
         </section>
       )}
 
-      {/* Modal de Validación de PIN (6 dígitos) */}
       {mostrarModalPin && (
         <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 w-full max-w-sm shadow-2xl">
@@ -313,7 +336,7 @@ export default function MenuClient({ platos = [], categorias = [], restaurantId 
               Acceso Restringido a Mozos
             </h3>
             <p className="text-xs text-slate-400 mb-4 text-center">
-              Ingresa el PIN de 6 dígitos del personal.
+              Ingresá el PIN de 6 dígitos del personal.
             </p>
 
             <form onSubmit={validarPin} className="space-y-4">
@@ -329,7 +352,7 @@ export default function MenuClient({ platos = [], categorias = [], restaurantId 
                 />
                 {errorPin && (
                   <p className="text-rose-400 text-xs text-center mt-2 font-medium">
-                    PIN incorrecto. Intenta nuevamente.
+                    PIN incorrecto. Intentá nuevamente.
                   </p>
                 )}
               </div>
@@ -354,7 +377,6 @@ export default function MenuClient({ platos = [], categorias = [], restaurantId 
         </div>
       )}
 
-      {/* Barra Flotante Inferior del Carrito */}
       {totalItems > 0 && (
         <div className="fixed bottom-4 left-1/2 -translate-x-1/2 w-[90%] max-w-lg bg-amber-500 text-slate-950 px-6 py-3.5 rounded-2xl shadow-2xl flex items-center justify-between z-40">
           <div>
@@ -364,6 +386,7 @@ export default function MenuClient({ platos = [], categorias = [], restaurantId 
             <p className="text-lg font-extrabold">${totalPedido}</p>
           </div>
           <button
+            type="button"
             onClick={() => setCarritoAbierto(true)}
             className="bg-slate-950 text-amber-400 font-bold px-4 py-2 rounded-xl text-sm hover:bg-slate-900 transition-colors"
           >
@@ -372,16 +395,16 @@ export default function MenuClient({ platos = [], categorias = [], restaurantId 
         </div>
       )}
 
-      {/* Drawer del Carrito */}
       {carritoAbierto && (
         <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex justify-end">
           <div className="w-full max-w-md bg-slate-900 h-full p-6 overflow-y-auto flex flex-col justify-between border-l border-slate-800">
             <div>
               <div className="flex justify-between items-center mb-6 pb-4 border-b border-slate-800">
                 <h3 className="text-xl font-bold text-amber-500">
-                  {esModoMozo ? ' Comanda Mozo' : ' Tu Pedido'}
+                  {esModoMozo ? 'Comanda Mozo' : 'Tu Pedido'}
                 </h3>
                 <button
+                  type="button"
                   onClick={() => setCarritoAbierto(false)}
                   className="text-slate-400 hover:text-slate-100 text-xl font-bold p-1"
                 >
@@ -405,52 +428,58 @@ export default function MenuClient({ platos = [], categorias = [], restaurantId 
               )}
 
               <div className="space-y-4">
-                {carrito.map((item) => (
-                  <div
-                    key={item._id}
-                    className="bg-slate-950 p-4 rounded-xl border border-slate-800 flex flex-col gap-2"
-                  >
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <h4 className="font-semibold text-slate-100">
-                          {item.title}
-                        </h4>
-                        <p className="text-xs text-amber-400">
-                          ${item.price} c/u
-                        </p>
+                {carrito.map((item) => {
+                  const itemId = item.id || item._id
+                  const itemTitle = item.name || item.title
+                  return (
+                    <div
+                      key={itemId}
+                      className="bg-slate-950 p-4 rounded-xl border border-slate-800 flex flex-col gap-2"
+                    >
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <h4 className="font-semibold text-slate-100">
+                            {itemTitle}
+                          </h4>
+                          <p className="text-xs text-amber-400">
+                            ${item.price} c/u
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2 bg-slate-900 rounded-lg border border-slate-800 px-2 py-1">
+                          <button
+                            type="button"
+                            onClick={() => modificarCantidad(itemId, -1)}
+                            className="text-amber-500 font-bold px-1"
+                          >
+                            -
+                          </button>
+                          <span className="text-sm font-semibold px-1">
+                            {item.cantidad}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => modificarCantidad(itemId, 1)}
+                            className="text-amber-500 font-bold px-1"
+                          >
+                            +
+                          </button>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-2 bg-slate-900 rounded-lg border border-slate-800 px-2 py-1">
-                        <button
-                          onClick={() => modificarCantidad(item._id, -1)}
-                          className="text-amber-500 font-bold px-1"
-                        >
-                          -
-                        </button>
-                        <span className="text-sm font-semibold px-1">
-                          {item.cantidad}
-                        </span>
-                        <button
-                          onClick={() => modificarCantidad(item._id, 1)}
-                          className="text-amber-500 font-bold px-1"
-                        >
-                          +
-                        </button>
-                      </div>
-                    </div>
 
-                    {esModoMozo && (
-                      <input
-                        type="text"
-                        placeholder="Notas (ej: sin cebolla, cocción a punto...)"
-                        value={item.notas || ''}
-                        onChange={(e) =>
-                          actualizarNotasItem(item._id, e.target.value)
-                        }
-                        className="w-full bg-slate-900/60 border border-slate-800/80 rounded px-2.5 py-1 text-xs text-slate-300 focus:outline-none focus:border-amber-500/50"
-                      />
-                    )}
-                  </div>
-                ))}
+                      {esModoMozo && (
+                        <input
+                          type="text"
+                          placeholder="Notas (ej: sin cebolla, cocción a punto...)"
+                          value={item.notas || ''}
+                          onChange={(e) =>
+                            actualizarNotasItem(itemId, e.target.value)
+                          }
+                          className="w-full bg-slate-900/60 border border-slate-800/80 rounded px-2.5 py-1 text-xs text-slate-300 focus:outline-none focus:border-amber-500/50"
+                        />
+                      )}
+                    </div>
+                  )
+                })}
               </div>
             </div>
 
@@ -464,6 +493,7 @@ export default function MenuClient({ platos = [], categorias = [], restaurantId 
 
               {checkoutStep === 'carrito' ? (
                 <button
+                  type="button"
                   onClick={handleCheckout}
                   className="w-full py-3 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-xl transition-colors"
                 >
@@ -496,12 +526,14 @@ export default function MenuClient({ platos = [], categorias = [], restaurantId 
                     />
                   </div>
                   <button
+                    type="button"
                     onClick={confirmarPedido}
                     className="w-full py-3 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-xl transition-colors"
                   >
                     Confirmar Pedido
                   </button>
                   <button
+                    type="button"
                     onClick={() => setCheckoutStep('carrito')}
                     className="w-full py-2 bg-neutral-800 hover:bg-neutral-700 text-neutral-300 text-sm rounded-xl transition-colors"
                   >
@@ -511,12 +543,18 @@ export default function MenuClient({ platos = [], categorias = [], restaurantId 
               ) : (
                 <div className="space-y-3">
                   <div className="bg-green-950/20 border border-green-800/50 rounded-xl p-4 text-center">
-                    <h3 className="text-green-400 font-bold text-sm">¡Pedido confirmado!</h3>
+                    <h3 className="text-green-400 font-bold text-sm">
+                      ¡Pedido confirmado!
+                    </h3>
                     <p className="text-neutral-400 text-xs mt-1">
-                      Tu pedido se ha enviado. Total: ${totalPedido.toLocaleString('es-AR', { minimumFractionDigits: 2 })}
+                      Tu pedido se ha enviado. Total: $
+                      {totalPedido.toLocaleString('es-AR', {
+                        minimumFractionDigits: 2,
+                      })}
                     </p>
                   </div>
                   <button
+                    type="button"
                     onClick={() => setCheckoutStep('carrito')}
                     className="w-full py-3 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-xl transition-colors"
                   >
@@ -529,5 +567,5 @@ export default function MenuClient({ platos = [], categorias = [], restaurantId 
         </div>
       )}
     </div>
-  );
+  )
 }

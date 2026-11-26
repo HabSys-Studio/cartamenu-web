@@ -1,96 +1,133 @@
-import NextAuth from 'next-auth'
-import Credentials from 'next-auth/providers/credentials'
-import bcrypt from 'bcryptjs'
-import { prisma } from '@/lib/prisma'
+import NextAuth from 'next-auth';
+import Credentials from 'next-auth/providers/credentials';
+import bcrypt from 'bcryptjs';
+import { prisma } from '@/lib/prisma';
 
-export const { handlers, signIn, signOut, auth } = NextAuth({
+async function getUserRestaurants(userId) {
+  const memberships = await prisma.userRestaurant.findMany({
+    where: { userId },
+    include: {
+      restaurant: {
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+          isActive: true,
+        },
+      },
+    },
+    orderBy: {
+      createdAt: 'asc',
+    },
+  });
+
+  return memberships.map((m) => ({
+    id: m.restaurant.id,
+    name: m.restaurant.name,
+    slug: m.restaurant.slug,
+    isActive: m.restaurant.isActive,
+    role: m.role,
+  }));
+}
+
+export const { handlers, auth, signIn, signOut } = NextAuth({
+  session: {
+    strategy: 'jwt',
+  },
+  pages: {
+    signIn: '/admin/login',
+  },
   providers: [
     Credentials({
       name: 'Credentials',
       credentials: {
         email: { label: 'Email', type: 'email' },
-        password: { label: 'Password', type: 'password' },
+        password: { label: 'Contraseña', type: 'password' },
       },
       async authorize(credentials) {
-        const email = credentials?.email
-        const password = credentials?.password
+        const email =
+          typeof credentials?.email === 'string'
+            ? credentials.email.trim().toLowerCase()
+            : '';
+        const password =
+          typeof credentials?.password === 'string' ? credentials.password : '';
 
         if (!email || !password) {
-          return null
+          return null;
         }
 
         const user = await prisma.user.findUnique({
-          where: { email: String(email) },
-          include: {
-            restaurants: {
-              include: {
-                restaurant: true,
-              },
-            },
+          where: { email },
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            password: true,
+            role: true,
+            emailVerified: true,
           },
-        })
+        });
 
-        if (!user) {
-          return null
+        if (!user || !user.password) {
+          return null;
         }
 
-        const isValidPassword = await bcrypt.compare(
-          String(password),
-          user.password
-        )
-
+        const isValidPassword = await bcrypt.compare(password, user.password);
         if (!isValidPassword) {
-          return null
+          return null;
         }
+
+        const restaurants = await getUserRestaurants(user.id);
+        const activeRestaurantId = restaurants[0]?.id ?? null;
 
         return {
           id: user.id,
+          name: user.name ?? user.email,
           email: user.email,
-          name: user.name,
-          role: user.role,
-          plan: user.plan,
-          maxRestaurants: user.maxRestaurants,
-          restaurants: user.restaurants.map((ur) => ({
-            id: ur.restaurant.id,
-            name: ur.restaurant.name,
-            slug: ur.restaurant.slug,
-            role: ur.role,
-          })),
-        }
+          role: user.role ?? 'USER',
+          emailVerified: user.emailVerified ?? null,
+          restaurants,
+          activeRestaurantId,
+        };
       },
     }),
   ],
-  pages: {
-    signIn: '/login',
-  },
-  session: {
-    strategy: 'jwt',
-  },
-  secret: process.env.AUTH_SECRET,
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user, trigger, session }) {
       if (user) {
-        token.id = user.id
-        token.email = user.email
-        token.name = user.name
-        token.role = user.role
-        token.plan = user.plan
-        token.maxRestaurants = user.maxRestaurants
-        token.restaurants = user.restaurants
+        token.id = user.id;
+        token.role = user.role;
+        token.emailVerified = user.emailVerified ?? null;
+        token.restaurants = user.restaurants ?? [];
+        token.activeRestaurantId = user.activeRestaurantId ?? null;
       }
-      return token
+
+      if (trigger === 'update' && session) {
+        if (typeof session.activeRestaurantId !== 'undefined') {
+          token.activeRestaurantId = session.activeRestaurantId;
+        }
+        if (Array.isArray(session.restaurants)) {
+          token.restaurants = session.restaurants;
+        }
+        if (typeof session.name === 'string') {
+          token.name = session.name;
+        }
+      }
+
+      return token;
     },
     async session({ session, token }) {
-      if (token) {
-        session.user.id = token.id
-        session.user.email = token.email
-        session.user.name = token.name
-        session.user.role = token.role
-        session.user.plan = token.plan
-        session.user.maxRestaurants = token.maxRestaurants
-        session.user.restaurants = token.restaurants
+      if (session.user) {
+        session.user.id = token.id;
+        session.user.role = token.role ?? 'USER';
+        session.user.emailVerified = token.emailVerified ?? null;
+        session.user.restaurants = Array.isArray(token.restaurants)
+          ? token.restaurants
+          : [];
+        session.user.activeRestaurantId = token.activeRestaurantId ?? null;
       }
-      return session
+
+      return session;
     },
   },
-})
+});

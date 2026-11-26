@@ -5,8 +5,13 @@ import { useRouter } from 'next/navigation'
 import ImageUpload from '@/components/ImageUpload'
 import { saveProduct } from '../actions'
 
-export default function ProductForm({ categories, initialData = null }) {
+export default function ProductForm({
+  categories,
+  restaurantId,
+  initialData = null,
+}) {
   const router = useRouter()
+  const targetRestaurantId = restaurantId || initialData?.restaurantId || ''
   const [imageUrl, setImageUrl] = useState(initialData?.imageUrl || '')
   const [loading, setLoading] = useState(false)
   const [errorMsg, setErrorMsg] = useState('')
@@ -16,8 +21,14 @@ export default function ProductForm({ categories, initialData = null }) {
     setLoading(true)
     setErrorMsg('')
 
+    if (!targetRestaurantId) {
+      setErrorMsg('No se identificó el restaurante para guardar el producto.')
+      setLoading(false)
+      return
+    }
+
     const formData = new FormData(event.currentTarget)
-    
+
     if (initialData?.id) {
       formData.append('id', initialData.id)
     }
@@ -26,26 +37,32 @@ export default function ProductForm({ categories, initialData = null }) {
       formData.set('imageUrl', imageUrl)
     }
 
-    const result = await saveProduct(formData)
+    const result = await saveProduct(formData, targetRestaurantId)
 
     if (result?.success) {
-      router.push('/admin')
+      router.push(
+        targetRestaurantId ? `/admin/manage/${targetRestaurantId}` : '/admin'
+      )
       router.refresh()
     } else {
-      setErrorMsg(result?.error || 'Ocurrió un error inesperado al guardar el producto.')
+      setErrorMsg(
+        result?.error || 'Ocurrió un error inesperado al guardar el producto.'
+      )
       setLoading(false)
     }
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6 bg-neutral-900 border border-neutral-800 p-6 rounded-2xl shadow-xl">
+    <form
+      onSubmit={handleSubmit}
+      className="space-y-6 bg-neutral-900 border border-neutral-800 p-6 rounded-2xl shadow-xl"
+    >
       {errorMsg && (
         <div className="bg-rose-500/10 border border-rose-500/50 text-rose-400 p-3 rounded-xl text-xs">
           {errorMsg}
         </div>
       )}
 
-      {/* Nombre y Prioridad */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="sm:col-span-2">
           <label className="block text-xs font-bold text-neutral-300 uppercase tracking-wider mb-2">
@@ -62,7 +79,10 @@ export default function ProductForm({ categories, initialData = null }) {
         </div>
 
         <div>
-          <label className="block text-xs font-bold text-neutral-300 uppercase tracking-wider mb-2" title="Menor número = Aparece más arriba en la categoría">
+          <label
+            className="block text-xs font-bold text-neutral-300 uppercase tracking-wider mb-2"
+            title="Menor número = Aparece más arriba en la categoría"
+          >
             Prioridad / Orden
           </label>
           <input
@@ -74,7 +94,6 @@ export default function ProductForm({ categories, initialData = null }) {
         </div>
       </div>
 
-      {/* Selector de Categoría y Precio */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <label className="block text-xs font-bold text-neutral-300 uppercase tracking-wider mb-2">
@@ -87,7 +106,7 @@ export default function ProductForm({ categories, initialData = null }) {
             className="w-full bg-neutral-950 border border-neutral-800 rounded-xl px-4 py-3 text-sm text-neutral-100 focus:outline-none focus:border-amber-500 transition"
           >
             <option value="" disabled>
-              Selecciona una categoría...
+              Seleccioná una categoría...
             </option>
             {categories.map((cat) => (
               <option key={cat.id} value={cat.id}>
@@ -105,14 +124,13 @@ export default function ProductForm({ categories, initialData = null }) {
             type="text"
             name="price"
             required
-            defaultValue={initialData?.price || ''}
+            defaultValue={initialData?.price ?? ''}
             placeholder="0.00"
             className="w-full bg-neutral-950 border border-neutral-800 rounded-xl px-4 py-3 text-sm text-neutral-100 placeholder-neutral-600 focus:outline-none focus:border-amber-500 transition"
           />
         </div>
       </div>
 
-      {/* Descripción */}
       <div>
         <label className="block text-xs font-bold text-neutral-300 uppercase tracking-wider mb-2">
           Descripción
@@ -126,15 +144,17 @@ export default function ProductForm({ categories, initialData = null }) {
         />
       </div>
 
-      {/* Carga de Imagen */}
       <div>
         <label className="block text-xs font-bold text-neutral-300 uppercase tracking-wider mb-2">
           Imagen del Producto
         </label>
-        <ImageUpload value={imageUrl} onChange={(url) => setImageUrl(url)} />
+        <ImageUpload
+          value={imageUrl}
+          onChange={(url) => setImageUrl(url)}
+          restaurantId={targetRestaurantId}
+        />
       </div>
 
-      {/* Botones de Acción */}
       <div className="flex items-center justify-end gap-3 pt-4 border-t border-neutral-800">
         <button
           type="button"
@@ -148,7 +168,11 @@ export default function ProductForm({ categories, initialData = null }) {
           disabled={loading}
           className="text-xs font-black bg-amber-500 hover:bg-amber-400 disabled:bg-neutral-800 disabled:text-neutral-600 text-neutral-950 px-6 py-3 rounded-xl transition shadow-lg"
         >
-          {loading ? 'Guardando...' : initialData ? 'Actualizar Producto' : 'Crear Producto'}
+          {loading
+            ? 'Guardando...'
+            : initialData
+            ? 'Actualizar Producto'
+            : 'Crear Producto'}
         </button>
       </div>
     </form>

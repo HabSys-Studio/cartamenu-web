@@ -1,16 +1,27 @@
 import { NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
 import bcrypt from 'bcryptjs'
+import { prisma } from '@/lib/prisma'
 
 export async function POST(request) {
   try {
-    const { token, password } = await request.json()
+    const body = await request.json()
+    const token = typeof body?.token === 'string' ? body.token.trim() : ''
+    const password = typeof body?.password === 'string' ? body.password : ''
 
     if (!token || !password) {
-      return NextResponse.json({ error: 'Token y contraseña son requeridos.' }, { status: 400 })
+      return NextResponse.json(
+        { error: 'Token y contraseña son requeridos.' },
+        { status: 400 }
+      )
     }
 
-    // Buscar el token válido y no expirado
+    if (password.length < 6) {
+      return NextResponse.json(
+        { error: 'La contraseña debe tener al menos 6 caracteres.' },
+        { status: 400 }
+      )
+    }
+
     const resetToken = await prisma.passwordResetToken.findUnique({
       where: { token },
     })
@@ -23,23 +34,39 @@ export async function POST(request) {
       return NextResponse.json({ error: 'El token ha expirado.' }, { status: 400 })
     }
 
-    // Hashear nueva contraseña
+    const normalizedEmail = resetToken.email.trim().toLowerCase()
+    const user = await prisma.user.findUnique({
+      where: { email: normalizedEmail },
+    })
+
+    if (!user) {
+      return NextResponse.json(
+        { error: 'No se encontró un usuario asociado a este enlace.' },
+        { status: 404 }
+      )
+    }
+
     const hashedPassword = await bcrypt.hash(password, 12)
 
-    // Actualizar contraseña del usuario
-    await prisma.adminUser.update({
-      where: { email: resetToken.email },
-      data: { password: hashedPassword },
-    })
+    await prisma.$transaction([
+      prisma.user.update({
+        where: { id: user.id },
+        data: { password: hashedPassword },
+      }),
+      prisma.passwordResetToken.delete({
+        where: { id: resetToken.id },
+      }),
+    ])
 
-    // Invalidar el token usado
-    await prisma.passwordResetToken.delete({
-      where: { id: resetToken.id },
+    return NextResponse.json({
+      success: true,
+      message: 'Contraseña restablecida correctamente.',
     })
-
-    return NextResponse.json({ success: true, message: 'Contraseña restablecida correctamente.' })
   } catch (error) {
     console.error('Reset password error:', error)
-    return NextResponse.json({ error: 'Error al restablecer la contraseña.' }, { status: 500 })
+    return NextResponse.json(
+      { error: 'Error al restablecer la contraseña.' },
+      { status: 500 }
+    )
   }
 }

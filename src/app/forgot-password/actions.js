@@ -1,49 +1,66 @@
 'use server'
 
+import crypto from 'crypto'
 import { prisma } from '@/lib/prisma'
 import { sendPasswordResetEmail } from '@/lib/email'
-import crypto from 'crypto'
 
-export async function requestPasswordReset(formData) {
-  const email = String(formData.get('email'))
+export async function requestPasswordReset(prevState, formData) {
+  const rawEmail = formData.get('email')
+  const email = typeof rawEmail === 'string' ? rawEmail.trim().toLowerCase() : ''
 
   if (!email) {
-    return { success: false, error: 'El correo es requerido.' }
+    return { success: false, error: 'El correo es requerido.', message: null }
   }
 
-  // Verificar que el email exista en AdminUser
-  const user = await prisma.adminUser.findUnique({
-    where: { email },
-  })
+  try {
+    const user = await prisma.user.findUnique({
+      where: { email },
+    })
 
-  if (!user) {
-    // Por seguridad, no revelamos si el email existe o no
-    return { success: true, message: 'Si el correo existe, recibirás un enlace para restablecer tu contraseña.' }
+    if (!user) {
+      return {
+        success: true,
+        error: null,
+        message: 'Si el correo existe, recibirás un enlace para restablecer tu contraseña.',
+      }
+    }
+
+    await prisma.passwordResetToken.deleteMany({
+      where: { email },
+    })
+
+    const token = crypto.randomBytes(32).toString('hex')
+    const expires = new Date(Date.now() + 60 * 60 * 1000)
+
+    await prisma.passwordResetToken.create({
+      data: {
+        email,
+        token,
+        expires,
+      },
+    })
+
+    const result = await sendPasswordResetEmail(email, token)
+
+    if (!result.success) {
+      return {
+        success: false,
+        error: 'No se pudo enviar el correo. Intentá de nuevo.',
+        message: null,
+      }
+    }
+
+    return {
+      success: true,
+      error: null,
+      message: 'Si el correo existe, recibirás un enlace para restablecer tu contraseña.',
+    }
+  } catch (error) {
+    console.error('Request password reset error:', error)
+    return {
+      success: false,
+      error: 'Ocurrió un error al procesar la solicitud.',
+      message: null,
+    }
   }
-
-  // Invalidar tokens previos no usados de este email
-  await prisma.passwordResetToken.deleteMany({
-    where: { email },
-  })
-
-  // Generar token único
-  const token = crypto.randomBytes(32).toString('hex')
-  const expires = new Date(Date.now() + 60 * 60 * 1000) // 1 hora
-
-  await prisma.passwordResetToken.create({
-    data: {
-      email,
-      token,
-      expires,
-    },
-  })
-
-  // Enviar email
-  const result = await sendPasswordResetEmail(email, token)
-
-  if (!result.success) {
-    return { success: false, error: 'No se pudo enviar el correo. Intenta de nuevo.' }
-  }
-
-  return { success: true, message: 'Si el correo existe, recibirás un enlace para restablecer tu contraseña.' }
 }

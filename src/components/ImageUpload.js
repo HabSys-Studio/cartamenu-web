@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { uploadImageAction } from '@/app/admin/actions/uploadImage'
 
-export default function ImageUpload({ value, onChange }) {
+export default function ImageUpload({ value, onChange, restaurantId }) {
   const [uploading, setUploading] = useState(false)
   const [errorMsg, setErrorMsg] = useState('')
 
@@ -18,8 +18,7 @@ export default function ImageUpload({ value, onChange }) {
       const formData = new FormData()
       formData.append('file', file)
 
-      // Llamada a la Server Action segura del servidor configurada con tus credenciales reales
-      const result = await uploadImageAction(formData)
+      const result = await uploadImageAction(formData, restaurantId)
 
       if (result.success && result.url) {
         onChange(result.url)
@@ -28,7 +27,10 @@ export default function ImageUpload({ value, onChange }) {
       }
     } catch (error) {
       console.error('Error uploading image:', error)
-      setErrorMsg(error.message || 'No se pudo subir la imagen a Cloudinary. Verificá tus credenciales.')
+      setErrorMsg(
+        error.message ||
+          'No se pudo subir la imagen a Cloudinary. Verificá tus credenciales.'
+      )
     } finally {
       setUploading(false)
     }
@@ -42,7 +44,6 @@ export default function ImageUpload({ value, onChange }) {
         </p>
       )}
 
-      {/* Visualizador de la imagen actual */}
       {value ? (
         <div className="relative w-full h-44 bg-neutral-950 border border-neutral-800 rounded-xl overflow-hidden group">
           <img
@@ -70,17 +71,14 @@ export default function ImageUpload({ value, onChange }) {
           </div>
         </div>
       ) : (
-        /* Opciones de Carga Inmediata: 1. Cámara | 2. Dispositivo */
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          
-          {/* Opción 1: Usar Cámara (Ideal Móviles) */}
           <label className="cursor-pointer flex flex-col items-center justify-center p-4 bg-neutral-950 border-2 border-dashed border-neutral-800 hover:border-amber-500/50 rounded-xl transition group text-center">
             <span className="text-xl mb-1 group-hover:scale-110 transition">📷</span>
             <span className="text-xs font-bold text-neutral-200 group-hover:text-amber-400">
               {uploading ? 'Subiendo...' : 'Usar mi Cámara'}
             </span>
             <span className="text-[10px] text-neutral-500 mt-0.5">
-              Toma una foto al toque (Móvil)
+              Tomá una foto al toque (Móvil)
             </span>
             <input
               type="file"
@@ -92,14 +90,13 @@ export default function ImageUpload({ value, onChange }) {
             />
           </label>
 
-          {/* Opción 2: Buscar en Dispositivo (PC / Galería) */}
           <label className="cursor-pointer flex flex-col items-center justify-center p-4 bg-neutral-950 border-2 border-dashed border-neutral-800 hover:border-amber-500/50 rounded-xl transition group text-center">
             <span className="text-xl mb-1 group-hover:scale-110 transition">📁</span>
             <span className="text-xs font-bold text-neutral-200 group-hover:text-amber-400">
               {uploading ? 'Subiendo...' : 'Buscar en mi Dispositivo'}
             </span>
             <span className="text-[10px] text-neutral-500 mt-0.5">
-              Selecciona un archivo guardado
+              Seleccioná un archivo guardado
             </span>
             <input
               type="file"
@@ -109,7 +106,6 @@ export default function ImageUpload({ value, onChange }) {
               className="hidden"
             />
           </label>
-
         </div>
       )}
     </div>

@@ -6,24 +6,25 @@ import { toggleProductAvailability, deleteProduct } from '@/app/admin/actions'
 
 export default function AdminProductRow({ product }) {
   const [loading, setLoading] = useState(false)
+  const restaurantId = product?.restaurantId
 
   async function handleToggle() {
     setLoading(true)
-    await toggleProductAvailability(product.id, product.available)
+    await toggleProductAvailability(product.id, product.available, restaurantId)
     setLoading(false)
   }
 
   async function handleDelete() {
-    if (!confirm(`¿Estás seguro de eliminar permanentemente "${product.name}"?`)) return
+    if (!confirm(`¿Estás seguro de eliminar permanentemente "${product.name}"?`)) {
+      return
+    }
     setLoading(true)
-    await deleteProduct(product.id)
+    await deleteProduct(product.id, restaurantId)
     setLoading(false)
   }
 
   return (
     <tr className="border-b border-neutral-800/60 hover:bg-neutral-900/40 transition text-xs">
-      
-      {/* Producto con Imagen y Nombre */}
       <td className="py-3.5 px-4">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 bg-neutral-950 rounded-lg overflow-hidden border border-neutral-800 flex-shrink-0">
@@ -48,24 +49,21 @@ export default function AdminProductRow({ product }) {
         </div>
       </td>
 
-      {/* Categoría */}
       <td className="py-3.5 px-4 text-neutral-400 font-medium">
         {product.category?.name || 'Sin categoría'}
       </td>
 
-      {/* Prioridad / Orden */}
       <td className="py-3.5 px-4 font-mono font-bold text-amber-500/90">
         #{product.order ?? 0}
       </td>
 
-      {/* Precio */}
       <td className="py-3.5 px-4 font-mono font-bold text-neutral-200">
-        ${product.price.toFixed(2)}
+        ${Number(product.price || 0).toFixed(2)}
       </td>
 
-      {/* Estado Disponible / Agotado */}
       <td className="py-3.5 px-4">
         <button
+          type="button"
           onClick={handleToggle}
           disabled={loading}
           className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider transition cursor-pointer ${
@@ -78,7 +76,6 @@ export default function AdminProductRow({ product }) {
         </button>
       </td>
 
-      {/* Acciones (Editar y Eliminar) */}
       <td className="py-3.5 px-4 text-right space-x-2">
         <Link
           href={`/admin/edit-product/${product.id}`}
@@ -87,6 +84,7 @@ export default function AdminProductRow({ product }) {
           ✏️ Editar
         </Link>
         <button
+          type="button"
           onClick={handleDelete}
           disabled={loading}
           className="bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 px-3 py-1.5 rounded-lg font-bold transition text-[11px] disabled:opacity-50"
@@ -94,7 +92,6 @@ export default function AdminProductRow({ product }) {
           {loading ? '...' : '🗑️'}
         </button>
       </td>
-
     </tr>
   )
 }

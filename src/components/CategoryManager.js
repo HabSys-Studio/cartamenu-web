@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { createCategory, updateCategory, deleteCategory } from '@/app/admin/actions'
 
-export default function CategoryManager({ categories = [] }) {
+export default function CategoryManager({ categories = [], restaurantId }) {
   const [isOpen, setIsOpen] = useState(false)
   const [loadingId, setLoadingId] = useState(null)
   const [errorMsg, setErrorMsg] = useState('')
@@ -11,7 +11,6 @@ export default function CategoryManager({ categories = [] }) {
   const [editName, setEditName] = useState('')
   const [editOrder, setEditOrder] = useState(0)
 
-  // Iniciar edición
   function handleStartEdit(cat) {
     setEditingId(cat.id)
     setEditName(cat.name)
@@ -19,19 +18,17 @@ export default function CategoryManager({ categories = [] }) {
     setErrorMsg('')
   }
 
-  // Cancelar edición
   function handleCancelEdit() {
     setEditingId(null)
     setEditName('')
     setEditOrder(0)
   }
 
-  // Guardar cambios de edición
   async function handleSaveEdit(id) {
     setLoadingId(id)
     setErrorMsg('')
-    
-    const res = await updateCategory(id, editName, editOrder)
+
+    const res = await updateCategory(id, editName, editOrder, restaurantId)
     if (!res.success) {
       setErrorMsg(res.error || 'No se pudo actualizar la categoría.')
     } else {
@@ -40,30 +37,28 @@ export default function CategoryManager({ categories = [] }) {
     setLoadingId(null)
   }
 
-  // Eliminar categoría
   async function handleDelete(id, name) {
     if (!confirm(`¿Estás seguro de eliminar la categoría "${name}"?`)) return
 
     setLoadingId(id)
     setErrorMsg('')
 
-    const res = await deleteCategory(id)
+    const res = await deleteCategory(id, restaurantId)
     if (!res.success) {
       setErrorMsg(res.error)
     }
     setLoadingId(null)
   }
 
-  // Crear categoría
   async function handleCreate(e) {
     e.preventDefault()
     setErrorMsg('')
     const formData = new FormData(e.currentTarget)
-    
+
     setLoadingId('create')
-    const res = await createCategory(formData)
+    const res = await createCategory(formData, restaurantId)
     if (res.success) {
-      e.target.reset()
+      e.currentTarget.reset()
     } else {
       setErrorMsg(res.error || 'Error al crear la categoría.')
     }
@@ -73,13 +68,14 @@ export default function CategoryManager({ categories = [] }) {
   return (
     <div className="bg-neutral-900 border border-neutral-800 rounded-2xl overflow-hidden shadow-xl">
       <button
+        type="button"
         onClick={() => setIsOpen(!isOpen)}
         className="w-full p-5 flex items-center justify-between text-left hover:bg-neutral-800/50 transition"
       >
         <div>
           <h2 className="text-lg font-bold text-neutral-100">Gestión de Categorías</h2>
           <p className="text-xs text-neutral-400 mt-0.5">
-            Configura el orden de aparición, edita nombres o elimina categorías.
+            Configurá el orden de aparición, editá nombres o eliminá categorías.
           </p>
         </div>
         <span className="text-xs font-bold text-amber-500 bg-amber-500/10 border border-amber-500/20 px-3 py-1.5 rounded-xl">
@@ -89,15 +85,16 @@ export default function CategoryManager({ categories = [] }) {
 
       {isOpen && (
         <div className="p-5 border-t border-neutral-800 space-y-6 bg-neutral-950/50">
-          
           {errorMsg && (
             <div className="bg-rose-500/10 border border-rose-500/40 text-rose-400 text-xs p-3 rounded-xl font-medium">
               ⚠️ {errorMsg}
             </div>
           )}
 
-          {/* Formulario para Crear Categoría */}
-          <form onSubmit={handleCreate} className="flex flex-col sm:flex-row gap-3 items-end bg-neutral-900 p-4 rounded-xl border border-neutral-800">
+          <form
+            onSubmit={handleCreate}
+            className="flex flex-col sm:flex-row gap-3 items-end bg-neutral-900 p-4 rounded-xl border border-neutral-800"
+          >
             <div className="flex-1 w-full">
               <label className="block text-[11px] font-extrabold uppercase tracking-wider text-neutral-400 mb-1">
                 Nueva Categoría
@@ -111,7 +108,10 @@ export default function CategoryManager({ categories = [] }) {
               />
             </div>
             <div className="w-full sm:w-28">
-              <label className="block text-[11px] font-extrabold uppercase tracking-wider text-neutral-400 mb-1" title="Menor número indica mayor prioridad arriba en el menú">
+              <label
+                className="block text-[11px] font-extrabold uppercase tracking-wider text-neutral-400 mb-1"
+                title="Menor número indica mayor prioridad arriba en el menú"
+              >
                 Prioridad
               </label>
               <input
@@ -130,7 +130,6 @@ export default function CategoryManager({ categories = [] }) {
             </button>
           </form>
 
-          {/* Listado y Edición de Categorías Vigentes */}
           <div>
             <h3 className="text-xs font-extrabold uppercase tracking-wider text-neutral-400 mb-3">
               Categorías Vigentes ({categories.length})
@@ -152,7 +151,6 @@ export default function CategoryManager({ categories = [] }) {
                       className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-neutral-900 border border-neutral-800 p-3.5 rounded-xl"
                     >
                       {isEditing ? (
-                        /* Modo Edición */
                         <div className="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-2 items-center">
                           <input
                             type="text"
@@ -171,7 +169,6 @@ export default function CategoryManager({ categories = [] }) {
                           </div>
                         </div>
                       ) : (
-                        /* Modo Lectura */
                         <div className="flex items-center gap-3">
                           <span
                             className="text-[10px] font-mono font-bold bg-neutral-950 text-neutral-400 px-2.5 py-1 rounded-lg border border-neutral-800"
@@ -185,11 +182,11 @@ export default function CategoryManager({ categories = [] }) {
                         </div>
                       )}
 
-                      {/* Botones de Acción */}
                       <div className="flex items-center gap-2 justify-end">
                         {isEditing ? (
                           <>
                             <button
+                              type="button"
                               onClick={() => handleSaveEdit(cat.id)}
                               disabled={isLoading}
                               className="text-[11px] font-bold bg-amber-500 hover:bg-amber-400 text-neutral-950 px-3 py-1.5 rounded-lg transition"
@@ -197,6 +194,7 @@ export default function CategoryManager({ categories = [] }) {
                               {isLoading ? '...' : 'Guardar'}
                             </button>
                             <button
+                              type="button"
                               onClick={handleCancelEdit}
                               className="text-[11px] font-bold bg-neutral-800 hover:bg-neutral-700 text-neutral-300 px-3 py-1.5 rounded-lg transition"
                             >
@@ -206,12 +204,14 @@ export default function CategoryManager({ categories = [] }) {
                         ) : (
                           <>
                             <button
+                              type="button"
                               onClick={() => handleStartEdit(cat)}
                               className="text-[11px] font-bold bg-neutral-800 hover:bg-neutral-700 text-neutral-300 px-3 py-1.5 rounded-lg transition"
                             >
                               ✏️ Editar
                             </button>
                             <button
+                              type="button"
                               onClick={() => handleDelete(cat.id, cat.name)}
                               disabled={isLoading}
                               className="text-[11px] font-bold bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 px-3 py-1.5 rounded-lg transition disabled:opacity-50"
@@ -227,7 +227,6 @@ export default function CategoryManager({ categories = [] }) {
               </div>
             )}
           </div>
-
         </div>
       )}
     </div>

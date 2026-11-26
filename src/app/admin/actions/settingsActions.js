@@ -77,10 +77,17 @@ export async function updateStoreSettings(formData, restaurantId) {
 
     revalidatePath('/')
     revalidatePath('/admin')
+    revalidatePath(`/admin/manage/${restaurant.id}`)
+    if (restaurant.slug) {
+      revalidatePath(`/${restaurant.slug}`)
+    }
 
     return { success: true }
   } catch (error) {
     console.error('Error al actualizar la configuración:', error)
-    return { success: false, error: 'No se pudo guardar la configuración de colores.' }
+    return {
+      success: false,
+      error: 'No se pudo guardar la configuración de colores.',
+    }
   }
 }
