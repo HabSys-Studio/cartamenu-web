@@ -1,6 +1,10 @@
 import { auth } from '@/auth'
 import { redirect } from 'next/navigation'
+import { prisma } from '@/lib/prisma'
 import { getUserRestaurantAccess, getUserRestaurants } from '@/lib/restaurant'
+import ThemeCustomizer from '@/components/ThemeCustomizer'
+import CategoryManager from '@/components/CategoryManager'
+import AdminProductList from '@/components/AdminProductList'
 import Link from 'next/link'
 
 export const dynamic = 'force-dynamic'
@@ -25,7 +29,28 @@ export default async function ManageRestaurantPage({ params }) {
     redirect('/admin')
   }
 
-  const userRestaurants = await getUserRestaurants(userId)
+  const [userRestaurants, categories, products] = await Promise.all([
+    getUserRestaurants(userId),
+    prisma.category.findMany({
+      where: { restaurantId },
+      orderBy: [{ order: 'asc' }, { createdAt: 'asc' }],
+    }),
+    prisma.product.findMany({
+      where: { restaurantId },
+      include: {
+        category: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
+      orderBy: [{ order: 'asc' }, { createdAt: 'desc' }],
+    }),
+  ])
+
+  const totalProducts = products.length
+  const activeCategories = categories.length
 
   return (
     <div className="min-h-screen bg-neutral-950 text-neutral-100 p-6 sm:p-10">
@@ -84,15 +109,11 @@ export default async function ManageRestaurantPage({ params }) {
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-4">
             <p className="text-xs text-neutral-400 font-semibold">Total de Productos</p>
-            <p className="text-2xl font-black text-amber-500 mt-1">
-              {restaurant.productCount ?? '-'}
-            </p>
+            <p className="text-2xl font-black text-amber-500 mt-1">{totalProducts}</p>
           </div>
           <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-4">
             <p className="text-xs text-neutral-400 font-semibold">Categorías Activas</p>
-            <p className="text-2xl font-black text-neutral-100 mt-1">
-              {restaurant.categoryCount ?? '-'}
-            </p>
+            <p className="text-2xl font-black text-neutral-100 mt-1">{activeCategories}</p>
           </div>
           <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-4">
             <p className="text-xs text-neutral-400 font-semibold">Estado del Local</p>
@@ -100,20 +121,23 @@ export default async function ManageRestaurantPage({ params }) {
           </div>
         </div>
 
-        <div className="space-y-8">
-          <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-6">
-            <h2 className="text-xl font-bold mb-2 text-neutral-100">Gestión de Categorías</h2>
-            <p className="text-neutral-400 text-sm">
-              Administrá las categorías de {restaurant.name}.
-            </p>
-          </div>
-          <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-6">
-            <h2 className="text-xl font-bold mb-2 text-neutral-100">Gestión de Productos</h2>
-            <p className="text-neutral-400 text-sm">
-              Administrá los productos de {restaurant.name}.
-            </p>
-          </div>
-        </div>
+        {/* 1. Personalización de colores agrupada por sector (arriba de categorías) */}
+        <ThemeCustomizer
+          initialSettings={restaurant}
+          restaurantId={restaurant.id}
+        />
+
+        {/* 2. Gestión de categorías con prioridad de orden */}
+        <CategoryManager
+          categories={categories}
+          restaurantId={restaurant.id}
+        />
+
+        {/* 3. Gestión de productos en tabla con buscador y switch En Stock / Agotado */}
+        <AdminProductList
+          products={products}
+          categories={categories}
+        />
       </div>
     </div>
   )
