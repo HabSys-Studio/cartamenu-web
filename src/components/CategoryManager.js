@@ -1,20 +1,27 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { createCategory, updateCategory, deleteCategory } from '@/app/admin/actions'
 
 export default function CategoryManager({ categories = [], restaurantId }) {
+  const router = useRouter()
   const [isOpen, setIsOpen] = useState(false)
+  const [items, setItems] = useState(categories)
   const [loadingId, setLoadingId] = useState(null)
   const [errorMsg, setErrorMsg] = useState('')
   const [editingId, setEditingId] = useState(null)
   const [editName, setEditName] = useState('')
   const [editOrder, setEditOrder] = useState(0)
 
+  useEffect(() => {
+    setItems(categories)
+  }, [categories])
+
   function handleStartEdit(cat) {
     setEditingId(cat.id)
     setEditName(cat.name)
-    setEditOrder(cat.order || 0)
+    setEditOrder(cat.order ?? 0)
     setErrorMsg('')
   }
 
@@ -28,13 +35,31 @@ export default function CategoryManager({ categories = [], restaurantId }) {
     setLoadingId(id)
     setErrorMsg('')
 
-    const res = await updateCategory(id, editName, editOrder, restaurantId)
-    if (!res.success) {
-      setErrorMsg(res.error || 'No se pudo actualizar la categoría.')
-    } else {
-      setEditingId(null)
+    const numericOrder = Number(editOrder) || 0
+
+    try {
+      const res = await updateCategory(id, editName, numericOrder, restaurantId)
+      if (!res?.success) {
+        setErrorMsg(res?.error || 'No se pudo actualizar la categoría.')
+      } else {
+        setItems((prev) =>
+          prev
+            .map((cat) =>
+              cat.id === id
+                ? { ...cat, name: editName.trim(), order: numericOrder }
+                : cat
+            )
+            .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+        )
+        setEditingId(null)
+        router.refresh()
+      }
+    } catch (err) {
+      console.error('Error al actualizar categoría:', err)
+      setErrorMsg('Error inesperado al actualizar la categoría.')
+    } finally {
+      setLoadingId(null)
     }
-    setLoadingId(null)
   }
 
   async function handleDelete(id, name) {
@@ -43,26 +68,67 @@ export default function CategoryManager({ categories = [], restaurantId }) {
     setLoadingId(id)
     setErrorMsg('')
 
-    const res = await deleteCategory(id, restaurantId)
-    if (!res.success) {
-      setErrorMsg(res.error)
+    try {
+      const res = await deleteCategory(id, restaurantId)
+      if (!res?.success) {
+        setErrorMsg(res?.error || 'No se pudo eliminar la categoría.')
+      } else {
+        setItems((prev) => prev.filter((cat) => cat.id !== id))
+        router.refresh()
+      }
+    } catch (err) {
+      console.error('Error al eliminar categoría:', err)
+      setErrorMsg('Error inesperado al eliminar la categoría.')
+    } finally {
+      setLoadingId(null)
     }
-    setLoadingId(null)
   }
 
   async function handleCreate(e) {
     e.preventDefault()
     setErrorMsg('')
-    const formData = new FormData(e.currentTarget)
+
+    const form = e.currentTarget
+    const formData = new FormData(form)
+    const rawName = String(formData.get('name') || '').trim()
+    const rawOrder = Number(formData.get('order') || 0)
+
+    if (!rawName) {
+      setErrorMsg('Ingresá un nombre para la categoría.')
+      return
+    }
 
     setLoadingId('create')
-    const res = await createCategory(formData, restaurantId)
-    if (res.success) {
-      e.currentTarget.reset()
-    } else {
-      setErrorMsg(res.error || 'Error al crear la categoría.')
+
+    try {
+      const res = await createCategory(formData, restaurantId)
+      if (res?.success) {
+        form.reset()
+        if (res.category) {
+          setItems((prev) =>
+            [...prev, res.category].sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+          )
+        } else {
+          setItems((prev) => [
+            ...prev,
+            {
+              id: `temp-${Date.now()}`,
+              name: rawName,
+              order: rawOrder,
+              restaurantId,
+            },
+          ])
+        }
+        router.refresh()
+      } else {
+        setErrorMsg(res?.error || 'Error al crear la categoría.')
+      }
+    } catch (err) {
+      console.error('Error al crear categoría:', err)
+      setErrorMsg('Error inesperado al crear la categoría.')
+    } finally {
+      setLoadingId(null)
     }
-    setLoadingId(null)
   }
 
   return (
@@ -132,16 +198,16 @@ export default function CategoryManager({ categories = [], restaurantId }) {
 
           <div>
             <h3 className="text-xs font-extrabold uppercase tracking-wider text-neutral-400 mb-3">
-              Categorías Vigentes ({categories.length})
+              Categorías Vigentes ({items.length})
             </h3>
 
-            {categories.length === 0 ? (
+            {items.length === 0 ? (
               <p className="text-xs text-neutral-500 italic py-4 text-center">
                 No hay categorías registradas.
               </p>
             ) : (
               <div className="space-y-2">
-                {categories.map((cat) => {
+                {items.map((cat) => {
                   const isEditing = editingId === cat.id
                   const isLoading = loadingId === cat.id
 
