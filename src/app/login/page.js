@@ -1,12 +1,12 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useState } from 'react'
 import Link from 'next/link'
 import { loginAction } from './actions'
 
 export default function LoginPage() {
   const [error, setError] = useState('')
-  const [isPending, startTransition] = useTransition()
+  const [isPending, setIsPending] = useState(false)
 
   const handleSubmit = async (event) => {
     event.preventDefault()
