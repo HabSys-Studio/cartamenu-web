@@ -6,6 +6,17 @@ import { revalidatePath } from 'next/cache'
 import crypto from 'crypto'
 import { sendEmailVerificationEmail } from '@/lib/email'
 
+function slugifyBase(text) {
+  const normalized = String(text || 'menu')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+
+  return normalized || 'menu'
+}
+
 export async function registerUser(prevState, formData) {
   const rawName = formData.get('name')
   const rawEmail = formData.get('email')
@@ -77,6 +88,11 @@ export async function registerUser(prevState, formData) {
   const verificationToken = crypto.randomBytes(32).toString('hex')
   const expires = new Date(Date.now() + 24 * 60 * 60 * 1000)
 
+  const restaurantName = name ? `Carta de ${name}` : 'Mi Restaurante'
+  const baseSlug = slugifyBase(name || email.split('@')[0])
+  const uniqueSuffix = crypto.randomBytes(3).toString('hex')
+  const restaurantSlug = `${baseSlug}-${uniqueSuffix}`
+
   try {
     await prisma.$transaction(async (tx) => {
       const createdUser = await tx.user.create({
@@ -88,6 +104,22 @@ export async function registerUser(prevState, formData) {
           plan: 'FREE',
           maxRestaurants: 1,
           emailVerified: false,
+        },
+      })
+
+      const createdRestaurant = await tx.restaurant.create({
+        data: {
+          name: restaurantName,
+          slug: restaurantSlug,
+          ownerId: createdUser.id,
+        },
+      })
+
+      await tx.userRestaurant.create({
+        data: {
+          userId: createdUser.id,
+          restaurantId: createdRestaurant.id,
+          role: 'OWNER',
         },
       })
 
@@ -108,6 +140,7 @@ export async function registerUser(prevState, formData) {
     }
 
     revalidatePath('/')
+    revalidatePath('/admin')
 
     return {
       success: true,
